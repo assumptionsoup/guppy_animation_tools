@@ -8,29 +8,29 @@ in the License directory of this project.
 
 # Index #
 ***
-**[About](#About)**
+**[About](#about)**
 
-- [General](#General)
-- [Arc Tracer](#Arc-Tracer)
-- [Clever Keys](#Clever-Keys)
-- [Lock 'n Hide](#Lock-'n-Hide)
-- [Move My Objects](#Move-My-Objects)
-- [Slide Animation Keys](#Slide-Animation-Keys)
-- [Zero Selection](#Zero-Selection)
+- [General](#general)
+- [Arc Tracer](#arc-tracer)
+- [Clever Keys](#clever-keys)
+- [Lock 'n Hide](#lock-n-hide)
+- [Move My Objects](#move-my-objects)
+- [Slide Animation Keys](#slide-animation-keys)
+- [Zero Selection](#zero-selection)
 
-**[To Install](#To-Install)**
+**[To Install](#to-install)**
 
-- [Move Files](#Move-Files)
-- [Setup usersetup.mel](#Setup-usersetup.mel)
+- [Move Files](#move-files)
+- [Setup usersetup.mel](#setup-usersetup.mel)
 
-**[Usage](#Usage)**
+**[Usage](#usage)**
 
-- [Arc Tracer](#Arc-Tracer-Usage)
-- [Clever Keys](#Clever-Keys-Usage)
-- [Lock 'n Hide](#Lock-'n-Hide-Usage)
-- [Move My Objects](#Move-My-Objects-Usage)
-- [Slide Animation Keys](#Slide-Animation-Keys-Usage)
-- [Zero Selection](#Zero-Selection-Usage)
+- [Arc Tracer](#arc-Tracer-Usage)
+- [Clever Keys](#clever-keys-usage)
+- [Lock 'n Hide](#lock-n-hide-usage)
+- [Move My Objects](#move-my-objects-usage)
+- [Slide Animation Keys](#slide-animation-keys-usage)
+- [Zero Selection](#zero-selection-usage)
 
 ---
 
