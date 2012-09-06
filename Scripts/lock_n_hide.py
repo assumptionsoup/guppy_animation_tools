@@ -127,7 +127,7 @@ def loadPlugin():
 		try:
 			cmd.loadPlugin('lock_n_hide.py')
 		except:
-			om.MGlobal.displayError("lockHideAttribute plugin not found.  Please install it for lockHideAttribute to function correctly.")
+			om.MGlobal.displayError("lock_n_hide plugin not found.  Please install it for lock_n_hide to function correctly.")
 			return False
 	return True
 
