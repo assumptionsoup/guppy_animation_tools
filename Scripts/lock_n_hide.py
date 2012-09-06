@@ -119,13 +119,13 @@ from textwrap import dedent
 
 # Constants
 PICKLED_ATTRIBUTE = 'lockHideReferenceDict'
-	
+
 def loadPlugin():
 	''' Tries to load the lockHidAttribute Command plugin.  Returns True if
 	successfull. '''
-	if not cmd.pluginInfo('lock_n_hideCommand', query = 1, l = 1):
+	if not cmd.pluginInfo('lock_n_hide', query = 1, l = 1):
 		try:
-			cmd.loadPlugin('lock_n_hideCommand.py')
+			cmd.loadPlugin('lock_n_hide.py')
 		except:
 			om.MGlobal.displayError("lockHideAttribute plugin not found.  Please install it for lockHideAttribute to function correctly.")
 			return False
