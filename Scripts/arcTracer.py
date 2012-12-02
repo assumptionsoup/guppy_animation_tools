@@ -79,9 +79,9 @@ def print_timing(func):
 #print 'Average getpoint took', round(sum(average) / float(len(average)), 4)
 
 def pluginLoaded():
-	if not cmd.pluginInfo('arcTracerNode', query = 1, l = 1):
+	if not cmd.pluginInfo('arcTracer', query = 1, l = 1):
 		try:
-			cmd.loadPlugin('arcTracerNode.py')
+			cmd.loadPlugin('arcTracer.py')
 		except:
 			om.MGlobal.displayError("Arc Tracer plugin not found.  Make sure it is installed or loaded before running this command")
 			return False
