@@ -41,8 +41,10 @@ This is the live code repository to Guppy Animation Tools. Scripts in this
 repository will be updated as I write them.  They will contain the newest 
 features, the newest bug fixes, and the newest bugs.
  
-Gupy Animation Tools is just a loose collection of scripts I've written to help animators.  It is not intended to be a cohesive suite of scripts, but rather 
-various odds and ends I've written at animators' requests.
+Guppy Animation Tools is just a loose collection of scripts I've written
+to help animators.  It is not intended to be a cohesive suite of
+scripts, but rather various odds and ends I've written at animators'
+requests.
 
 ### Arc Tracer ###
 Arc Tracer is a script/plugin combo that can visually display the arc of an 
@@ -201,7 +203,9 @@ size of frame numbers.
 frame is changed.
 - _Use Refresh Mode:_ Only use this if Arc Tracer doesn't seem to be tracing the 
 object correctly. By default Arc Tracer tries to use methods in Maya that avoid a 
-full scene DG evaluation (which is slow). However, these methods can fail to work correctly in certain circumstances (usually involving IK's or expressions). 
+full scene DG evaluation (which is slow). However, these methods can fail to 
+work correctly in certain circumstances (usually involving IK's or expressions). 
+
 Enabling this mode will make the Update button move the current frame and refresh 
 the entire scene for every frame needed.  This will result in the most acurrate 
 positional data from Maya.
