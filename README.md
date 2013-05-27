@@ -21,7 +21,7 @@ in the License directory of this project.
 **[To Install](#to-install)**
 
 - [Move Files](#move-files)
-- [Setup usersetup.mel](#setup-usersetup.mel)
+- [Setup userSetup.mel](#setup-usersetup.mel)
 
 **[Usage](#usage)**
 
@@ -122,17 +122,17 @@ import maya.mel as mel
 print '\n'.join(mel.eval('getenv("XBMLANGPATH")').split(';'))
 ```
 
-### Setup usersetup.mel ###
-usersetup.mel is a mel file that should be in your Maya scripts directory. 
+### Setup userSetup.mel ###
+userSetup.mel is a mel file that should be in your Maya scripts directory. 
 You may have to create this file if it does not exist.  Anything in this 
 file is run when Maya starts up.
 
-**Advanced User Note:** _I prefer using usersetup.mel over usersetup.py because
-usersetup.py is run much sooner than usersetup.mel, often before Maya's ui is 
+**Advanced User Note:** _I prefer using userSetup.mel over userSetup.py because
+userSetup.py runs much sooner than userSetup.mel, often before Maya's ui is 
 fully loaded._
 
 
-Add the following lines to your usersetup.mel:
+Add the following lines to your userSetup.mel:
 ```
 python("import arcTracer");
 python("import cleverKeys");
