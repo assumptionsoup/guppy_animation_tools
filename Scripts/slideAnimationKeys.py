@@ -24,35 +24,16 @@ It is also badly in need of a rewrite.
     Author:........Jordan Hueckstaedt
     Website:.......RubberGuppy.com
     Email:.........AssumptionSoup@gmail.com
-    Work Status:...Looking for work!  If you have a job where I can write tools
-                   like this or rig characters, hit me up!
-
-*******************************************************************************
-   Change Log:
-    8-23-2012 - v1.95 - De class-ified and made settings global variables to unify and simplify installation for
-                        Guppy Animation Tools.
-    2-03-2012 - v1.94 - In Maya 2010, but not 2012 Maya will apparently pass INTslider values in callbacks as UNICODE.
-                        Fixed that by casting to int in the callback.  In updateKeys the disableUndo()
-                        was apparently misplaced, making the user undo multiple times per value set - again only in Maya
-                        2010.  I moved disableUndo() to an earlier place fix this.
-    1-20-2012 - v1.93 - Fixed several bugs.  To fix them several changes were made.  Mode is now saved as an optionVar along
-                        with the other setting options.  Key grabbing was modified to use selectedAttributes - the same
-                        module that clever keys uses.  Now if a key is is selected in the graph editor it will be used, if no
-                        key is selected, whatever selected attributes/nodes in the graph editor will be used for the current
-                        frame, if the graph editor is not visible, any selected attributes in the channelbox will be used and
-                        finally, if the channelbox is closed, the entire node's attributes will be used.  Aka, this shit just
-                        got robust!
-    Note: After the first commit to git, this history will be erased.  I'll be
-    using git as a way of keeping track of future changes.
+    Work Status:...Employed!
 ****************************************************************************'''
 
 __author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2011-2012'
+__copyright__ = 'Copyright 2011-2013'
 __license__ = 'LGPL v3'
-__version__ = '1.95'
+__version__ = '1.96'
 __email__ = 'AssumptionSoup@gmail.com'
 __status__ = 'Beta'
-__date__ = '8-23-2012'
+__date__ = '6-30-2013'
 
 import maya.cmds as cmd
 import maya.OpenMaya as om
@@ -81,7 +62,7 @@ def setDefaultOptionVar(name, value):
 
 class SAKSettings(object):
     def __init__(self):
-        self.modes = ['Blend', 'Average', 'Default', 'Shrink', 'Level']
+        self.modes = ['Blend', 'Average', 'Default', 'Shrink', 'Level', 'Linear']
         self.keys = {}
         self.undoState = 1
         self.shrinkWarning = False
@@ -727,8 +708,10 @@ def setMode( mode):
         updateKeys()
         enableUndo()
 
-    #Reset shrink mode not working warning every time we change mode.  It could be hours between the user changing modes.  They may have forgotten the selection doesn't work.
-    #Okay, unrealistic situation.  Still, they might miss it or something.
+    #Reset shrink mode not working warning every time we change mode. It
+    #could be hours between the user changing modes.  They may have
+    #forgotten the selection doesn't work. Okay, that may be an
+    #unrealistic situation. Still, they might miss it or something.
     settings.shrinkWarning = False
 
 def enableUndo( apply = None):
@@ -846,14 +829,16 @@ def loadKeys( reload = 0):
                     keyExisted = attr in gKeys.keys()
                     if not keyExisted or len(keys[attr]) != len(gKeys[attr]):
                         changed = 1
-                    x = 0
-                    for key in keys[attr]:
+
+                    for x, key in enumerate(keys[attr]):
                         newKeys[attr].append({})
                         newKeys[attr][x]['key'] = key
                         newKeys[attr][x]['value'] = cmd.keyframe(attr, index = (key, key), q = 1, valueChange = 1)[0]
+                        newKeys[attr][x]['time'] = cmd.keyframe(attr, index = (key, key), q = 1, timeChange = 1)[0]
                         newKeys[attr][x]['default'] = default
                         newKeys[attr][x]['endKey'] = (x == 0 and len(keys[attr]) > 1 and keys[attr][x + 1] == key) or (x == len(keys[attr]) -1 and keys[attr][x - 1] == key)
                         newKeys[attr][x]['lastValue'] = newKeys[attr][x]['value']
+
                         if not changed and not reload:
                             #If keys are not on the same frame they have changed
                             if gKeys[attr][x]['key'] != key:
@@ -864,7 +849,6 @@ def loadKeys( reload = 0):
                                 #If keys do not have the same value, they have changed.
                                 if round(gKeys[attr][x]['lastValue'], 5) != round(newKeys[attr][x]['value'], 5):
                                     changed = 1
-                        x = x + 1
 
 
     #Test if keys have changed.  If they have, reload them and set their defaults.
@@ -882,16 +866,26 @@ def loadKeys( reload = 0):
     #Find additional information needed for Shrink and Level function
     if newKeys:
 
-        #Find Level Value
+        #Find Level Value and set the linear goals
         level = 0
         count = 0
-        for attr in newKeys.keys():
+        for attr in newKeys:
+            startKey = newKeys[attr][0]
+            endKey = newKeys[attr][-1]
             for key in range(1, len(newKeys[attr]) - 1):
+                # Sum levels
                 level += newKeys[attr][key]['value']
                 count += 1
+
+                # Linear goal
+                # Find the value that is the linear interpolation of the
+                # start key to the end key at the current frame
+                t = (newKeys[attr][key]['time'] - startKey['time']) / float(endKey['time'] - startKey['time'])
+                goal = (t * (endKey['value'] - startKey['value'])) + startKey['value']
+                newKeys[attr][key]['linear'] = goal
+
         if count > 0:
             level /= count
-
 
         #Find out how many keys per attribute for shrink, and add level to each key (it's the same value, but it doesn't make sense to put it on a lower level)
         keys = []
@@ -1012,7 +1006,7 @@ def updateKeys( percent = None):
     #Force mode to average if percent is zero and reset on apply is set and it is relative.
     #This forces the key to the middle of the surrounding keys when zero is pressed - like a reset button.
     #Which zero is always supposed to mean.  In my mind.  And tool :D
-    #I might take this out if it just doens't feel consistent enough.
+    #I might take this out if it just doesn't feel consistent enough.
     fakeReset = percent == 0.0 and settings.resetOnApply and not settings.absolute and mode == 'Blend'
     if fakeReset:
         mode = 'Average'
@@ -1032,7 +1026,7 @@ def updateKeys( percent = None):
             if mode == 'Blend':
                 keyValFin = midKey['value'] * (1 - abs(percent)) + keyVal
             elif mode == 'Average':
-                keyValFin = midKey['value'] * (1 - percent) + ((settings.keys[attr][0]['value'] + settings.keys[attr][-1]['value']) / 2) * percent
+                keyValFin = midKey['value'] * (1 - percent) + ((startKey['value'] + endKey['value']) / 2) * percent
             elif mode == 'Default':
                 keyValFin = midKey['value'] * (1 - percent) + midKey['default'] * percent
             elif mode == 'Shrink':
@@ -1043,6 +1037,9 @@ def updateKeys( percent = None):
                     break
             elif mode == 'Level':
                 keyValFin = midKey['value'] * (1 - percent) + midKey['level'] * percent
+            elif mode == 'Linear':
+                keyValFin = midKey['value'] * (1 - percent) + midKey['linear'] * percent
+
             cmd.keyframe(attr, a = 1, valueChange = keyValFin, index = (midKey['key'], midKey['key']))
             settings.keys[attr][key]['lastValue'] = keyValFin
             if settings.resetOnApply and not settings.absolute:
