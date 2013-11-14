@@ -34,6 +34,8 @@ in the License directory of this project.
 
 ---
 
+[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/d0049c6702187608bf6e7539f64d848c "githalytics.com")](http://githalytics.com/assumptionsoup/Guppy-Animation-Tools)
+
 # About #
 ***
 ### General ###
@@ -41,7 +43,7 @@ This is the live code repository to Guppy Animation Tools. Scripts in this
 repository will be updated as I write them.  They will contain the newest 
 features, the newest bug fixes, and the newest bugs.
  
-Guppy Animation Tools is just a loose collection of scripts I've written
+Guppy Animation Tools is a loose collection of scripts I've written
 to help animators.  It is not intended to be a cohesive suite of
 scripts, but rather various odds and ends I've written at animators'
 requests.
@@ -83,10 +85,6 @@ attributes to their default values.
 ### Move Files ###
 _If you've installed scripts and plugins for Maya before, you probably already 
 know where to put these files._
-
-**Advanced User Note:** _On my local machine I hardlink these files to the 
-correct directory so I can use the latest version in Maya while keeping 
-everything version controlled in git._
 
 1. Files in the Scripts directory and in the Plugins/AETemplates directory 
 need to be placed in a Maya scripts directory. In windows this should be 
