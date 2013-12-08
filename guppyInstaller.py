@@ -98,9 +98,17 @@ except NameError:
     __file__ = None
     REPO_DIR = None
 
-class GitError(IOError): pass
-class GitNotFoundError(GitError): pass
-class RepoNotFoundError(GitError): pass
+
+class GitError(IOError):
+    pass
+
+
+class GitNotFoundError(GitError):
+    pass
+
+
+class RepoNotFoundError(GitError):
+    pass
 
 
 def _addToPath(env, newLocation):
@@ -149,7 +157,7 @@ def _addIconPath(iconLocation):
 
 
 def doubleStringRepr(inputStr):
-    return '"%s"' % repr(inputStr)[1:-1].replace('"',r'\"').replace(r"\'","'")
+    return '"%s"' % repr(inputStr)[1:-1].replace('"', r'\"').replace(r"\'", "'")
 
 
 def install():
@@ -217,6 +225,7 @@ def dynamicInstall():
         **layout)
 
     cmds.showWindow(window)
+
 
 def _dynamicInstall(installDir, checkForUpdates=True):
     '''
