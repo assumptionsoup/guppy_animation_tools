@@ -898,7 +898,11 @@ def loadKeys(reload=0):
                 # Linear goal
                 # Find the value that is the linear interpolation of the
                 # start key to the end key at the current frame
-                t = (newKeys[attr][key]['time'] - startKey['time']) / float(endKey['time'] - startKey['time'])
+                totalTime = float(endKey['time'] - startKey['time'])
+                try:
+                    t = (newKeys[attr][key]['time'] - startKey['time']) / totalTime
+                except ZeroDivisionError:
+                    t = 0.0
                 goal = (t * (endKey['value'] - startKey['value'])) + startKey['value']
                 newKeys[attr][key]['linear'] = goal
 
