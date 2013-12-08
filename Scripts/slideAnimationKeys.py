@@ -1034,6 +1034,8 @@ def updateKeys(percent=None):
     for attr in settings.keys.keys():
         keyVal = blendDownPercent * settings.keys[attr][0]['value'] + blendUpPercent * settings.keys[attr][-1]['value']
 
+        startKey = settings.keys[attr][0]
+        endKey = settings.keys[attr][-1]
         for key in range(1, len(settings.keys[attr]) - 1):
             # Skip fake resets on end keys - they won't behave as the user expects (Halving the end key values instead of zeroing them)
             if fakeReset and ((key == 1 and settings.keys[attr][key - 1]['endKey']) or (key == len(settings.keys[attr]) - 2) and settings.keys[attr][key + 1]['endKey']):
