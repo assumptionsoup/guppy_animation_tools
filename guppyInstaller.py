@@ -164,11 +164,11 @@ def install():
     '''
     Install Guppy Animation Tools to Maya's paths.
     '''
-    pluginPath = os.path.join(REPO_DIR, 'Plugins')
-    _addPythonPath(os.path.join(REPO_DIR, 'Scripts'))
-    _addPluginPath(os.path.join(pluginPath, 'Python'))
+    pluginPath = os.path.join(REPO_DIR, 'plugins')
+    # _addPythonPath(os.path.join(REPO_DIR, 'scripts'))
+    _addPluginPath(os.path.join(pluginPath, 'python'))
     _addScriptPath(os.path.join(REPO_DIR, 'AETemplates'))
-    _addIconPath(os.path.join(REPO_DIR, 'Icons'))
+    _addIconPath(os.path.join(REPO_DIR, 'icons'))
 
 
 def _getScriptDirectories():
@@ -242,8 +242,7 @@ def _dynamicInstall(installDir, checkForUpdates=True):
     userSetupPath = os.path.join(scriptsDir, 'userSetup.mel')
     pythonToEval = ['import sys',
                     'sys.path.append(%r)' % REPO_DIR,
-                    'import guppyInstaller',
-                    'guppyInstaller.install()']
+                    'import guppy_animation_tools as gat']
     if checkForUpdates:
         pythonToEval.append("guppyInstaller.update(blocking=False, onDays=['monday'])")
     pythonToEval = ';'.join(pythonToEval)

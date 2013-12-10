@@ -86,7 +86,7 @@ attributes to their default values.
 _If you've installed scripts and plugins for Maya before, you probably already 
 know where to put these files._
 
-1. Files in the Scripts directory and in the Plugins/AETemplates directory 
+1. Files in the scripts directory and in the plugins/AETemplates directory 
 need to be placed in a Maya scripts directory. In windows this should be 
 My Documents/Maya/scripts.
 <br><br>
@@ -98,7 +98,7 @@ import maya.mel as mel
 print '\n'.join(mel.eval('getenv("MAYA_SCRIPT_PATH")').split(';'))
 ```
 
-2. Files in the Plugins/Python directory need to be placed in a Maya plug-ins 
+2. Files in the plugins/python directory need to be placed in a Maya plug-ins 
 directory.  In windows, should be My Documents/Maya/plug-ins.  You may have to 
 create this folder if it doesn't exist.
 <br><br>
@@ -110,7 +110,7 @@ import maya.mel as mel
 print '\n'.join(mel.eval('getenv("MAYA_PLUG_IN_PATH")').split(';'))
 ```
 
-3. Icons in the Plugins/Icon directory can be placed in a Maya icons
+3. Icons in the plugins/icon directory can be placed in a Maya icons
 directory. In windows this should be My Documents/Maya/prefs/icons. You 
 may have to create this folder if it doesn't exist.
 <br><br>
