@@ -26,40 +26,7 @@ The primary method associated with this module is the "get" method.'''
 	Email:.........AssumptionSoup@gmail.com
 	Work Status:...Looking for work!  If you have a job where I can write stuff
 				   like this or rig characters, hit me up!
-
-*******************************************************************************
-   Change Log:
-    7-30-2012 - v0.14 - Small change to getChannelBox so that non-animatable attributes on shapes are processed if needed.
-	7-29-2012 - v0.13 - Tried to fix getNonAnimatableAttributes to work.  If it fails again, I will probably remove it.  Attempted
-						to make homogonizeName more robust, since I found out cmd.listAttributes(long = 1) can sometimes return the
-						nice name instead (awesome job there autodesk).
-	6-25-2012 - v0.12 - Added splitAttr and homogonizeName methods and converted appropriate sections over.  Should make the script
-						more robust, but could have unforseen side-effects because it affects low-level parts of the code.
-    6-23-2012 - v0.11 - Changed keyableOnly to animatableOnly.  Renamed helper functions appropriately.  Fixed it to work when
-						no attributes were selected.  Now returns objects that are keyable or in the channelbox.  This means
-						that locked attributes will be returned as well as non-keyable objects that were forced into the
-						channelbox.  ZeroAttributes needs non-keyable objects forced into the channelbox, while lockHideReferencedAttributes
-						needs locked attributes.  So this option may later be split into two (getLocked and getChannelbox?).  getChannelBox
-						and getGraphEditor now return attribute instead of passing through reference.
-    5-10-2012 - v0.1  - Fixed logic error in filterSelectedToAttributes() - a mistake was causing a variable to be modified and
-						checked against in a loop.  Caused selections of multiple objects to behave incorrectly if one object name
-						partially matched another, when they were selected in a certain order.  Fixed a logic error in getSelectedCurves()
-						which would cause clever keys to skip attributes if all the keys on one curve were selected, but only some on
-						another.  Now if there is a mix of fully selected curves and partially selected curves getSelectedCurves()
-						will return an empty list.  Changed license from GPL to LGPL.  LGPL is more along the lines of how I had originally
-						wanted this script to be used, and should give studio legal teams less headaches.
-    3-16-2012 - v0.09 - Found that listAnimatable returns keyable attributes on shapes of the given object.  For now I've fixed it so
-						that shape attributes are returned correctly.  Removing shape attributes from listAnimatable is going to be
-						tricky/messy, and my not be desirable in the end (despite being the default behavior in maya's setkey command),
-						since it is difficult to key attributes on multiple shapes under the same object.
-    2-27-2012 - v0.08 - Spring cleaning on the code.  Added useGraphAttributes, getAnimatableAttributes, getNonAnimatableAttributes and
-						filterSelectedToAttributes.  The big change being filterSelectedToAttributes which condenses some code that
-						was present in both getGraphEditor and getChannelBox.  If anything these changes make the code slower, but
-						hopefully more readable.
-
-	Note: After the first commit to git, this history will be erased.  I'll be
-	using git as a way of keeping track of future changes.
-****************************************************************************'''
+'''
 
 __author__ = 'Jordan Hueckstaedt'
 __copyright__ = 'Copyright 2012 Jordan Hueckstaedt'

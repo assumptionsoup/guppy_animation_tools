@@ -26,22 +26,7 @@ later.
 	License v2.0
 
 *******************************************************************************
-
-Change Log (Jordan Hueckstaedt):
-7-30-2012 - v0.3 - Switched to attributeExists in toAttr() as getAttr was
-					returning false positives on shape nodes.
-7-03-2012 - v0.2 - Removed unsafe parameter and replaced with useLockHide.
-				   Functions will now attempt to use the custom lockHideAttribute
-				   command to lock/unlock attributes when told.  This allows for
-				   safer interactions when the pickled attribute is on a referenced
-				   attribute.
-6-25-2012 - v0.1 - Added unsafe parameter to toAttr so that it can work on
-				   referenced attributes.  Added splitAttr from selectedAttributes
-				   to make getting attributes a little more robust.
-
-	Note: After the first commit to git, this history will be erased.  I'll be
-	using git as a way of keeping track of future changes.
-****************************************************************************'''
+'''
 __license__ = 'LGPL v3'
 __version__ = '0.3'
 
@@ -85,7 +70,7 @@ def toAttr(objAttr, data, useLockHide=False):
     if cmd.getAttr(objAttr, type=True) != 'string':
         raise Exception("Object '%s' already has an attribute called '%s', but it isn't type 'string'" % (obj, attr))
 
-    # Pickle the data and return the coresponding string value:
+    # Pickle the data and return the corresponding string value:
     stringData = cPickle.dumps(data)
 
     # Make sure attr is unlocked before edit:

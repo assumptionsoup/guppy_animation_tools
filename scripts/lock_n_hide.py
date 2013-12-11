@@ -87,19 +87,6 @@ the initial state of an attribute.
 					like this or rig characters, hit me up!
 
 -------------------------------------------------------------------------------
-   Change Log:
-   7-30-2012 - v0.4 - Switched to attributeExists in hasAttributeStates() as getAttr was returning false
-					  positives on shape nodes.  Added emergencyReset and emergencyResetAll.
-   7-29-2012 - v0.3 - Added try-except to resetAll, so the rest of the scene can reset even if there are
-					  errors on a few nodes.
-   7-03-2012 - v0.2 - Changed with pickleAttr to allow the PICKLED_ATTRIBUTE to be locked/unlocked using
-					  the custom lockHideAttributes command.  This will prevent users from being able
-					  to change the pickled attribute in the attribute editor.  Changed
-					  restoreAllAttributeStates to validateStates on sceneLoad.  Added validation
-					  functions to AttributeState
-	Note: After the first commit to git, this history will be erased.  I'll be
-	using git as a way of keeping track of future changes.
--------------------------------------------------------------------------------
 '''
 
 # Meta.

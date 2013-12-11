@@ -38,12 +38,6 @@ accidental misuse could cause lost work, time, and money.
 					like this or rig characters, hit me up!
 
 -------------------------------------------------------------------------------
-   Change Log:
-	7-07-2012 - v0.1 - Added I_KNOW_FLAG to further discourage non-developer use.
-
-	Note: After the first commit to git, this history will be erased.  I'll be
-	using git as a way of keeping track of future changes.
--------------------------------------------------------------------------------
 '''
 
 __author__ = 'Jordan Hueckstaedt'

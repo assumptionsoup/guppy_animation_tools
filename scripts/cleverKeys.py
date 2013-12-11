@@ -33,39 +33,7 @@ module, call setKey()
 				   like this or rig characters, hit me up!
 
 *******************************************************************************
-   Change Log:
-	6-25-2012 - v1.08 - Switched attribute-grabbing code to splitAttr in selectedAttributes.  Should be more robust, but it could
-						cause unforseen problems being a low-level part of the code.
-	6-24-2012 - v1.07 - Updated to reflect getChannelBox and getGraphEditor changes in selectedAttributes.
-    5-11-2012 - v1.06 - Added setKey optional parameter useSelectedCurves, so that the user has the option to disable selected curves
-						taking precedent over selected attributes.  Changed key selection algorithm to select new keys if they are
-						between keys already selected.  Changed the license to LGPL as it is more in line with what I originally wanted
-						clever keys to be released as.  This should also make it easier for people in studios, so their legal divisions
-						don't get in a huff.
-    2-27-2012 - v1.05 - New keys are now selected if a curve was selected in the graph editor and used to determine which attributes
-						to key.
-    2-20-2012 - v1.04 - Fixed selectedSimilarAttributes method to work with compound attributes.
-	2-18-2012 - v1.03 - Fixed a few corner cases for syncGraphEditor and selectSimilarAttributes.
-    2-17-2012 - v1.02 - Added selectSimilarAttributes method after a discussion about the mel script with the same name with Riannon.
-    2-16-2012 - v1.01 - Fixed small bug in syncGraphEditor where a method call hadn't been appropriately updated when
-						selectedAttributes became a module.
-	1-30-2012 - v1.00 - Exiting Beta Status.  Updated getFirstConnection to split multi-attributes instead of erroring out.
-	1-20-2012 - v0.99 - Updated selection connection retrieval methods to use new, more robust method added to selectedAttributes.
-	1-20-2012 - v0.98 - Seperated selectedAttributes methods to their own module so that my slideAnimationKeys module would be able to
-						access them.
-	1-17-2012 - v0.97 - Fixed attributes assignment problem in getSelectedAttributesGE if no attributes were selected.
-	1-15-2012 - v0.96 - Discovered how to detect if the channelBox is open in both pre and post QT versions of Maya.  Added that detection
-						to getSelectedAttributesCB.  clearAttributes now uses the cursor to determine which field to clear by default.
-	1-14-2012 - V0.95 - Added syncGraphEditor and clearAttributes.  Added feedback on setKey to inform user and hide cmd.setKeyframe
-						warnings.  Fixed getSelectedAttributesCB and getSelectedAttributesGE to use cmd.listAnimatable instead of
-						cmd.listAttr
-	1-13-2012 - V0.94 - Updated getSelectedAttributesCB to grab selected attributes outside of the main object area (like Outputs).
-						Updated setKey to not process connected attributes if pairBlending is disabled when setting keys.
-	1-09-2012 - V0.93 - Fixed to work with array attributes.
-
-	Note: After the first commit to git, this history will be erased.  I'll be
-	using git as a way of keeping track of future changes.
-****************************************************************************'''
+'''
 
 __author__ = 'Jordan Hueckstaedt'
 __copyright__ = 'Copyright 2012'
