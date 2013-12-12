@@ -89,6 +89,8 @@ import datetime
 import maya.cmds as cmds
 import maya.mel as mel
 
+_updateTimeVar = '_guppyAnimationTools_lastUpdateCheck'
+_updateTimeFormat = '%Y-%m-%d %H:%M:%S.%f'
 _repoIsPrepped = False
 _gitEnv = None
 REPO_ORIGIN = 'https://github.com/assumptionsoup/Guppy-Animation-Tools.git'
@@ -409,7 +411,21 @@ def _getChangeLog():
     return '\n'.join(log)
 
 
-def update(force=False, blocking=True, onDays=None):
+def getTimeSinceUpdateCheck():
+    if cmds.optionVar(query=_updateTimeVar, exists=1):
+        lastUpdate = cmds.optionVar(query=_updateTimeVar)
+        lastUpdate = datetime.datetime.strptime(lastUpdate, _updateTimeFormat)
+    else:
+        lastUpdate = datetime.datetime.now()
+    return datetime.datetime.now() - lastUpdate
+
+def setTimeSinceUpdateCheck():
+    now = datetime.datetime.now()
+    now = now.strftime(_updateTimeFormat)
+    cmds.optionVar(sv=(_updateTimeVar, now))
+
+
+def update(force=False, blocking=True, onDays=None, checkOncePerDay=True):
     '''
     Check if Guppy Animation Tools is up to date.  If it is not, prompt
     the user to update.
@@ -428,15 +444,27 @@ def update(force=False, blocking=True, onDays=None):
             List of days this module should try to update itself on.
             If blank, this module will always try to update itself at
             least once a day.
+        checkOncePerDay: `bool`
+            Only check for updates once per day if force is False.
     '''
 
-    # Only update on the given days
-    if onDays is not None:
-        if isinstance(onDays, basestring):
-            onDays = [onDays]
-        today = datetime.datetime.today().strftime('%A').lower()
-        if not any(today == day.lower() for day in onDays):
-            return
+    if not force:
+        # Exit if we shouldn't update today
+        if onDays is not None:
+            if isinstance(onDays, basestring):
+                onDays = [onDays]
+            today = datetime.datetime.today().strftime('%A').lower()
+            if not any(today == day.lower() for day in onDays):
+                return
+
+        # Exit if we already checked for an update today
+        if checkOncePerDay:
+            lastUpdateCheck = getTimeSinceUpdateCheck()
+            if lastUpdateCheck.days <= 0:
+                return
+    setTimeSinceUpdateCheck()
+
+
     # Open in a new thread since this could take awhile, even just to
     # determine everything is up to date.
     if not blocking:
