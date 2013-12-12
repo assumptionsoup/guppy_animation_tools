@@ -412,6 +412,9 @@ def _getChangeLog():
 
 
 def getTimeSinceUpdateCheck():
+    '''
+    Get the timedelta since we last checked for updates
+    '''
     if cmds.optionVar(query=_updateTimeVar, exists=1):
         lastUpdate = cmds.optionVar(query=_updateTimeVar)
         lastUpdate = datetime.datetime.strptime(lastUpdate, _updateTimeFormat)
@@ -419,7 +422,11 @@ def getTimeSinceUpdateCheck():
         lastUpdate = datetime.datetime.now()
     return datetime.datetime.now() - lastUpdate
 
+
 def setTimeSinceUpdateCheck():
+    '''
+    Save the current time to disk.
+    '''
     now = datetime.datetime.now()
     now = now.strftime(_updateTimeFormat)
     cmds.optionVar(sv=(_updateTimeVar, now))
