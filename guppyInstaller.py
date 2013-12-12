@@ -239,7 +239,7 @@ def _dynamicInstall(installDir, checkForUpdates=True):
     if not os.path.exists(REPO_DIR):
         os.makedirs(REPO_DIR)
 
-    update(force=False, blocking=True)
+    update(force=True, blocking=True)
     scriptsDir = os.path.dirname(REPO_DIR)
     userSetupPath = os.path.join(scriptsDir, 'userSetup.mel')
     pythonToEval = ['import sys',
