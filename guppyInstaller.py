@@ -40,13 +40,12 @@ __status__ = 'Alpha'
 #       for new "versions" by default.  It should have a flag to get
 #       every update if you want though.
 #
-#       I'm also playing around with the idea of having this module
-#       import the other modules in Guppy Animation Tools into the
-#       __main__ namespace (as an ease-of-use feature for non-technical
-#       users)
-#
-#       Cache if the module has tried to update itself that day already.
-#       If so, don't try to update again.
+#       I feel that lock_n_hide is installed too aggressively for such
+#       an invasive script (it's installed on GAT import).  Once
+#       guppyInstaller has become stable, lock_n_hide should be
+#       installed via guppyInstaller.install() to give advanced users
+#       control on whether they want the lock_n_hide plugin loaded and
+#       lock_n_hide script jobs running.
 #
 # Future Plans:
 #       If I made this script more generic and flexible, would any other
@@ -242,17 +241,16 @@ def _dynamicInstall(installDir, checkForUpdates=True):
     update(force=True, blocking=True)
     scriptsDir = os.path.dirname(REPO_DIR)
     userSetupPath = os.path.join(scriptsDir, 'userSetup.mel')
-    pythonToEval = ['import sys',
-                    'sys.path.append(%r)' % REPO_DIR,
-                    'import guppy_animation_tools as gat']
+    pythonToEval = ['import guppy_animation_tools as gat']
     if checkForUpdates:
-        pythonToEval.append("guppyInstaller.update(blocking=False, onDays=['monday'])")
+        pythonToEval.append("gat.guppyInstaller.update(blocking=True, onDays=['monday'])")
     pythonToEval = ';'.join(pythonToEval)
 
     with open(userSetupPath, 'a') as userSetup:
         userSetup.write('\npython(%s);\n' % doubleStringRepr(pythonToEval))
 
     install()
+    print 'Guppy Animation Tools has been installed successfully.'
 
 
 # I had considered naming it getGitEnv, but that just seems confusing!
