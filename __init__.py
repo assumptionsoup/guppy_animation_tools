@@ -11,6 +11,8 @@
 import os
 import sys
 
+import pymel.internal.plogging as plogging
+
 
 REPO_DIR = os.path.dirname(os.path.realpath(__file__))
 _SCRIPTS_DIR = os.path.join(REPO_DIR, 'scripts')
@@ -26,6 +28,12 @@ __all__ = [
     'slideAnimationKeys',
     'zeroSelection',
     'guppyInstaller']
+
+
+def getLogger(name):
+    if 'guppy_animation_tools' in name:
+        name = name.replace('guppy_animation_tools', 'gat', 1)
+    return plogging.getLogger(name)
 
 
 def _addToPath(env, newLocation):
@@ -72,10 +80,15 @@ def _addIconPath(iconLocation):
     '''
     _addToPath('XBMLANGPATH', iconLocation)
 
-logger = getLogger('guppy_animation_tools')
 
 # Add necessary folders to the PYTHONPATH
-pluginPath = os.path.join(REPO_DIR, 'plugins')
-_addPluginPath(os.path.join(pluginPath, 'python'))
+_pluginPath = os.path.join(REPO_DIR, 'plugins')
+_addPluginPath(os.path.join(_pluginPath, 'python'))
 _addScriptPath(os.path.join(REPO_DIR, 'AETemplates'))
 _addIconPath(os.path.join(REPO_DIR, 'icons'))
+
+# Add logger TODO: investigate if pymel has controls for manipluating
+# all loggers created through it.  If not, we should keep track of all
+# of GAT's loggers so we can toggle verbosity for the entire package if
+# needed.
+logger = getLogger('guppy_animation_tools')
