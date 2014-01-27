@@ -7,4 +7,4 @@ __all__ = [
     'pointOnMesh',
     'selectedAttributes',
     'slideAnimationKeys',
-    'zeroSelection'] 
+    'zeroSelection']

@@ -1,26 +1,81 @@
-# Importing the scripts folder gives us a nice top-level namespace of
-# python scripts we care about.  For instance:
+# Include the scripts folder in this package.  Which allows for:
+# import guppy_animation_tools.cleverKeys
 
-# import guppy_animation_tools as gat
-# gat.cleverKeys
+# As well as the less intuitive:
+# import guppy_animation_tools.scripts.cleverKeys
 
-# Unfortunately, it also brings in scripts that require plugins, like
-# lock_n_hide. The first thing that script tries to do is access the
-# plugin, and spit out an error message if it can't find it.
+# This allows us to use guppy_animation_tools as both a complete
+# development package (including plugin, scripts, and icons), and allow
+# non-technical users to drop the package into an existing folder on the
+# PYTHONPATH (e.g. the maya scripts dir)
+import os
+import sys
 
-# This doesn't sound so bad, except that I now building guppy animation
-# tools to be primarily run via an installer, which goes like this:
-# import guppy_animation_tools as gat  # scripts are imported
-#                                      # lock_n_hide prints an error message
-# gat.install()  # Plugins are now installed on the path.
 
-# To work around this for now, I'm letting this package run the
-# installer, but I'm not sure I like this method because it means these
-# plugins will be loaded automatically without a good way for the end-
-# user (even a reasonably python savvy one), to change this behavior.
+REPO_DIR = os.path.dirname(os.path.realpath(__file__))
+_SCRIPTS_DIR = os.path.join(REPO_DIR, 'scripts')
+__path__.append(_SCRIPTS_DIR)
+__all__ = [
+    'arcTracer',
+    'cleverKeys',
+    'lock_n_hide',
+    'moveMyObjects',
+    'pickleAttr',
+    'pointOnMesh',
+    'selectedAttributes',
+    'slideAnimationKeys',
+    'zeroSelection',
+    'guppyInstaller']
 
-# Perhaps my installer could look at environment variables which control
-# plugin loading...
-import guppy_animation_tools.guppyInstaller
-guppy_animation_tools.guppyInstaller.install()
-from guppy_animation_tools.scripts import *
+
+def _addToPath(env, newLocation):
+    '''
+    Add path to os.environ[env]
+    '''
+    if not newLocation.endswith(os.path.sep):
+        newLocation += os.path.sep
+
+    if newLocation not in os.environ[env].split(os.pathsep):
+        if os.environ[env]:
+            os.environ[env] += os.pathsep
+        os.environ[env] += newLocation
+
+
+def _addPluginPath(pluginLocation):
+    '''
+    Add plugin path to Maya.
+    '''
+    _addToPath('MAYA_PLUG_IN_PATH', pluginLocation)
+
+
+def _addScriptPath(scriptLocation):
+    '''
+    Add mel script path to Maya.
+    '''
+    _addToPath('MAYA_SCRIPT_PATH', scriptLocation)
+
+
+def _addPythonPath(scriptLocation):
+    '''
+    Add python script path to Maya.
+    '''
+    # Adding to python path just adds the parent dir for some reason
+    # (Guppy-Animation-Tools).
+    # _addToPath('PYTHONPATH', scriptLocation)
+    if scriptLocation not in sys.path:
+        sys.path.append(scriptLocation)
+
+
+def _addIconPath(iconLocation):
+    '''
+    Add icon path to Maya.
+    '''
+    _addToPath('XBMLANGPATH', iconLocation)
+
+logger = getLogger('guppy_animation_tools')
+
+# Add necessary folders to the PYTHONPATH
+pluginPath = os.path.join(REPO_DIR, 'plugins')
+_addPluginPath(os.path.join(pluginPath, 'python'))
+_addScriptPath(os.path.join(REPO_DIR, 'AETemplates'))
+_addIconPath(os.path.join(REPO_DIR, 'icons'))

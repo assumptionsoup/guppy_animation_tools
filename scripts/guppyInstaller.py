@@ -30,7 +30,7 @@ and updating Guppy Animation Tools for non-technical users.
 __author__ = 'Jordan Hueckstaedt'
 __copyright__ = 'Copyright 2013'
 __license__ = 'LGPL v3'
-__version__ = '.01'
+__version__ = '.2'
 __email__ = 'AssumptionSoup@gmail.com'
 __status__ = 'Alpha'
 
@@ -39,13 +39,6 @@ __status__ = 'Alpha'
 #       indicate versions.  Then have the update command only notify
 #       for new "versions" by default.  It should have a flag to get
 #       every update if you want though.
-#
-#       I feel that lock_n_hide is installed too aggressively for such
-#       an invasive script (it's installed on GAT import).  Once
-#       guppyInstaller has become stable, lock_n_hide should be
-#       installed via guppyInstaller.install() to give advanced users
-#       control on whether they want the lock_n_hide plugin loaded and
-#       lock_n_hide script jobs running.
 #
 # Future Plans:
 #       If I made this script more generic and flexible, would any other
@@ -112,64 +105,8 @@ class RepoNotFoundError(GitError):
     pass
 
 
-def _addToPath(env, newLocation):
-    '''
-    Add path to os.environ[env]
-    '''
-    if not newLocation.endswith(os.path.sep):
-        newLocation += os.path.sep
-
-    if newLocation not in os.environ[env].split(os.pathsep):
-        if os.environ[env]:
-            os.environ[env] += os.pathsep
-        os.environ[env] += newLocation
-
-
-def _addPluginPath(pluginLocation):
-    '''
-    Add plugin path to Maya.
-    '''
-    _addToPath('MAYA_PLUG_IN_PATH', pluginLocation)
-
-
-def _addScriptPath(scriptLocation):
-    '''
-    Add mel script path to Maya.
-    '''
-    _addToPath('MAYA_SCRIPT_PATH', scriptLocation)
-
-
-def _addPythonPath(scriptLocation):
-    '''
-    Add python script path to Maya.
-    '''
-    # Adding to python path just adds the parent dir for some reason
-    # (Guppy-Animation-Tools).
-    # _addToPath('PYTHONPATH', scriptLocation)
-    if scriptLocation not in sys.path:
-        sys.path.append(scriptLocation)
-
-
-def _addIconPath(iconLocation):
-    '''
-    Add icon path to Maya.
-    '''
-    _addToPath('XBMLANGPATH', iconLocation)
-
-
 def doubleStringRepr(inputStr):
     return '"%s"' % repr(inputStr)[1:-1].replace('"', r'\"').replace(r"\'", "'")
-
-
-def install():
-    '''
-    Install Guppy Animation Tools to Maya's paths.
-    '''
-    pluginPath = os.path.join(REPO_DIR, 'plugins')
-    # _addPythonPath(os.path.join(REPO_DIR, 'scripts'))
-    _addPluginPath(os.path.join(pluginPath, 'python'))
-    _addScriptPath(os.path.join(REPO_DIR, 'AETemplates'))
-    _addIconPath(os.path.join(REPO_DIR, 'icons'))
 
 
 def _getScriptDirectories():
@@ -249,7 +186,6 @@ def _dynamicInstall(installDir, checkForUpdates=True):
     with open(userSetupPath, 'a') as userSetup:
         userSetup.write('\npython(%s);\n' % doubleStringRepr(pythonToEval))
 
-    install()
     print 'Guppy Animation Tools has been installed successfully.'
 
 
@@ -571,5 +507,3 @@ def _update(force=False, onError='notify'):
 
     # Invalidate prep repo, so other commands will re-run it appropriately
     _repoIsPrepped = False
-
-run = install
