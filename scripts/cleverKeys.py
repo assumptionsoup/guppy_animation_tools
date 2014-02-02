@@ -178,10 +178,18 @@ def clearAttributes(graphEditor=None, channelBox=None):
 
 
 def clearChannelBox():
-    '''Deselects the channelBox attributes by reselecting objects.'''
+    '''Deselects the channelBox attributes.'''
+    # Since Maya does not provide direct access to channel box
+    # selection, we need to trick Maya into de-selecting channel box
+    # attributes by reselecting the current object selection.
     selected = cmd.ls(sl=1)
     if selected:
-        cmd.select(selected)
+        cmd.select(clear=1)
+        # We must defer the re-selection, or Maya won't refresh the gui.
+        # The refresh() command won't work because that only refreshes
+        # the viewport (as far as I know).  The "channelBox -update"
+        # command does nothing.
+        cmd.evalDeferred(lambda: cmd.select(selected))
 
 
 def clearGraphEditor(panel):
