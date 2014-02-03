@@ -73,23 +73,25 @@ __status__ = 'Alpha'
 
 
 import os
-import sys
 import subprocess
 import threading
 import datetime
 import maya.cmds as cmds
 import maya.mel as mel
 
+try:
+    import guppy_animation_tools
+except ImportError:
+    REPO_DIR = None
+else:
+    REPO_DIR = guppy_animation_tools.REPO_DIR
+
+
 _updateTimeVar = '_guppyAnimationTools_lastUpdateCheck'
 _updateTimeFormat = '%Y-%m-%d %H:%M:%S.%f'
 _repoIsPrepped = False
 _gitEnv = None
 REPO_ORIGIN = 'https://github.com/assumptionsoup/Guppy-Animation-Tools.git'
-try:
-    REPO_DIR = os.path.dirname(__file__)
-except NameError:
-    __file__ = None
-    REPO_DIR = None
 
 
 class GitError(IOError):
@@ -177,9 +179,9 @@ def _dynamicInstall(installDir, checkForUpdates=True):
     update(force=True, blocking=True)
     scriptsDir = os.path.dirname(REPO_DIR)
     userSetupPath = os.path.join(scriptsDir, 'userSetup.mel')
-    pythonToEval = ['import guppy_animation_tools as gat']
+    pythonToEval = ['import guppy_animation_tools.guppyInstaller as guppyInstaller']
     if checkForUpdates:
-        pythonToEval.append("gat.guppyInstaller.update(blocking=True, onDays=['monday'])")
+        pythonToEval.append("guppyInstaller.update(blocking=True, onDays=['monday'])")
     pythonToEval = ';'.join(pythonToEval)
 
     with open(userSetupPath, 'a') as userSetup:
