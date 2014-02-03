@@ -112,7 +112,7 @@ def loadPlugin():
     if not cmd.pluginInfo('lock_n_hide', query=1, l=1):
         try:
             cmd.loadPlugin('lock_n_hide.py')
-        except:
+        except RuntimeError:
             om.MGlobal.displayError("lock_n_hide plugin not found.  Please install it for lock_n_hide to function correctly.")
             return False
     return True
@@ -224,7 +224,7 @@ def hasAttributeState(node):
         # getAttr is inexact and will return true if attribute is
         # actually on shapeNode instead.
         # cmd.getAttr('%s.%s' % (node, PICKLED_ATTRIBUTE))
-    except Exception as e:
+    except RuntimeError:
         return False
 
 
@@ -237,7 +237,7 @@ def getAttributeStates(node):
         # Retrieve states
         try:
             return pickle.toPython('%s.%s' % (node, PICKLED_ATTRIBUTE), lockAttr=1, useLockHide=1)
-        except Exception as err:
+        except Exception:
             pass
     return AttributeStates()
 

@@ -117,7 +117,7 @@ class LockHideAttribute(omMPx.MPxCommand):
 
         try:
             argData = om.MArgDatabase(self.syntax(), argList)
-        except:
+        except RuntimeError:
             return om.MStatus.kFailure
 
         # Saftey procaution so users don't try anything stupid.  Read
@@ -155,7 +155,7 @@ class LockHideAttribute(omMPx.MPxCommand):
             # it fails.
             try:
                 plug = depend.findPlug(attribute, 0)
-            except:
+            except RuntimeError:
                 raise AttributeError('%s is not an attribute on %s' % (attribute, depend.name()))
             self.plugs.append(plug)
 
@@ -205,6 +205,6 @@ def uninitializePlugin(mobject):
 
     try:
         mplugin.deregisterCommand(COMMAND_NAME)
-    except:
+    except RuntimeError:
         sys.stderr.write("Error removing command %s\n" % COMMAND_NAME)
         raise

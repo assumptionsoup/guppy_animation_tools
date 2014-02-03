@@ -185,7 +185,7 @@ class ArcNode(omMPx.MPxLocatorNode):
         indexes = om.MIntArray()
         try:
             plug.getExistingArrayAttributeIndices(indexes)
-        except:
+        except RuntimeError:
             print "Failed to get position indexes"
 
         for e in indexes:
@@ -195,8 +195,8 @@ class ArcNode(omMPx.MPxLocatorNode):
                     plugElement = plug.elementByLogicalIndex(e)
                     xyz.append(plugElement.child(child).asDouble())
                 positions.append(xyz)
-            except:
-                print "Falied to get outputValue on index", index
+            except RuntimeError:
+                print "Falied to get outputValue on index", e
         return positions
 
 
@@ -207,37 +207,37 @@ class ArcNode(omMPx.MPxLocatorNode):
 
         try:
             showArc = om.MPlug(self.thisMObject(), self.showArc).asBool()
-        except:
+        except RuntimeError:
             print "Failed to get showArc"
 
         try:
             overlayArc = om.MPlug(self.thisMObject(), self.overlayArc).asBool()
-        except:
+        except RuntimeError:
             print "Failed to get overlayArc"
 
         try:
             currentFrame = om.MPlug(self.thisMObject(), self.lastFrame).asDouble()
-        except:
+        except RuntimeError:
             print "Failed to get lastFrame"
 
         try:
             showFrameMarkers = om.MPlug(self.thisMObject(), self.showFrameMarkers).asBool()
-        except:
+        except RuntimeError:
             print "Falied to get showFrameMarkers value"
 
         try:
             showFrameNumbers = om.MPlug(self.thisMObject(), self.showFrameNumbers).asBool()
-        except:
+        except RuntimeError:
             print "Falied to get showFrameMarkers value"
 
         try:
             scaleToCamera = om.MPlug(self.thisMObject(), self.frameMarkersScaleToCamera).asBool()
-        except:
+        except RuntimeError:
             print "Failed to get frameMarkersScaleToCamera value"
 
         try:
             frameMarkerSize = om.MPlug(self.thisMObject(), self.frameMarkerSize).asDouble()
-        except:
+        except RuntimeError:
             print "Failed to get frameMarkerSize value"
 
 
@@ -254,18 +254,18 @@ class ArcNode(omMPx.MPxLocatorNode):
         if scaleToCamera:
             try:
                 hasOrtho = cameraDg.hasAttribute('orthographic') and cameraDg.hasAttribute('orthographicWidth')
-            except:
+            except RuntimeError:
                 print "Could not determine camera's orthographic state"
 
             if hasOrtho:
                 try:
                     isOrthographic = om.MPlug(cameraObj, cameraDg.attribute('orthographic')).asBool()
-                except:
+                except RuntimeError:
                     print "Could not access camera's orthographic attribute"
                 if isOrthographic:
                     try:
                         cameraWidth = om.MPlug(cameraObj, cameraDg.attribute('orthographicWidth')).asDouble()
-                    except:
+                    except RuntimeError:
                         print "Could not access camera's orthographic width"
 
 
@@ -394,7 +394,7 @@ class ArcNode(omMPx.MPxLocatorNode):
         for c in xrange(colorPlug.numChildren()):
             try:
                 color.append(colorPlug.child(c).asFloat())
-            except:
+            except RuntimeError:
                 print "Could not get color plug, ", colorPlug.name()
         return color
 
@@ -426,12 +426,12 @@ class ArcNode(omMPx.MPxLocatorNode):
         # expressions with the arc tracer
         try:
             self.aboutToDeleteID = om.MNodeMessage.addNodeAboutToDeleteCallback(self.thisMObject(), self.aboutToDelete, None)
-        except:
+        except RuntimeError:
             print "Could not create aboutToDelete callback"
 
         try:
             self.nameChangedID = om.MNodeMessage.addNameChangedCallback(self.thisMObject(), self.nameChanged, None)
-        except:
+        except RuntimeError:
             print "Could not create nameChanged callback"
 
     def nameChanged(self, node, previousName, clientData):
@@ -494,7 +494,7 @@ class ArcNode(omMPx.MPxLocatorNode):
 
         try:
             dgModifier.doIt()
-        except:
+        except RuntimeError:
             print "Failed to do it."
 
         # I assume these removeCallback functions are needed to clean
@@ -505,12 +505,12 @@ class ArcNode(omMPx.MPxLocatorNode):
         '''
         try:
             om.MMessage.removeCallback(self.aboutToDeleteID)
-        except:
+        except RuntimeError:
             print "Failed to remove aboutToDelete callback"
 
         try:
             om.MMessage.removeCallback(self.nameChangedID)
-        except:
+        except RuntimeError:
             print "Failed to remove nameChanged callback"
         '''
 
@@ -689,7 +689,7 @@ def nodeInitializer():
 def addAttr(attr, name):
     try:
         ArcNode.addAttribute(attr)
-    except:
+    except RuntimeError:
         sys.stderr.write("Failed to add %s attribute %s." % (attr.apiTypeStr(), name))
         raise
 
@@ -698,7 +698,7 @@ def initializePlugin(obj):
     plugin = omMPx.MFnPlugin(obj)
     try:
         plugin.registerNode(NODENAME, NODEID, nodeCreator, nodeInitializer, omMPx.MPxNode.kLocatorNode)
-    except:
+    except RuntimeError:
         sys.stderr.write("Failed to register node: %s" % NODENAME)
 
 

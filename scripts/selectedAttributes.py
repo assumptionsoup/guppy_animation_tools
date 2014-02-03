@@ -336,7 +336,7 @@ def getChannelBox(expandObjects=True, animatableOnly=True, selectedOnly=False):
                         # Make sure the attribute isn't something incredibly weird that will fail later.
                         try:
                             attr = homogonizeName('%s.%s' % (obj, attr))
-                        except:
+                        except RuntimeError:
                             continue
 
                         # Filter only keyable objects if necessary.
@@ -424,7 +424,7 @@ def getSelectedCurves():
                     # Trace the output of  the curve to find the attribute.
                     attr = getFirstConnection(curve, 'output', outAttr=1, findAttribute=1)
                     selection.append(attr)
-                except:
+                except RuntimeError:
                     pass
             else:
                 # Short circut the whole loop.  If there's ever any
@@ -516,7 +516,7 @@ def isGraphEditorActive():
     panel = ''
     try:
         panel = cmd.getPanel(underPointer=True)
-    except:
+    except TypeError:
         # Maya is being bitchy again.  Default to channelBox and warn
         # the user that Maya is a bitch. Yes, I've had this fail here
         # before.  Maya told me underPointer needed to be passed a bool.

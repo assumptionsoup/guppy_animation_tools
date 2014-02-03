@@ -41,7 +41,7 @@ import maya.OpenMaya as om
 def enableUndo():
     try:
         cmd.undoInfo(cck=1)  # close chunk
-    except:
+    except AttributeError:
         cmd.undoInfo(swf=1)  # turn undo back on
         cmd.undoInfo(q=1, un=0)  # needs this to work for some reason
 
@@ -49,7 +49,7 @@ def enableUndo():
 def disableUndo():
     try:
         cmd.undoInfo(ock=1)  # Open chunk
-    except:
+    except AttributeError:
         cmd.undoInfo(swf=0)  # turn undo off
 
 
@@ -131,7 +131,7 @@ def applyPositions(positions, objects):
             value = cmd.getAttr('%s.%s' % (dummyGroup, attr))
             try:
                 cmd.setAttr('%s.%s' % (objects[x], attr), value)
-            except:
+            except RuntimeError:
                 om.MGlobal.displayWarning('Could not set value for %s.%s, skipping...' % (objects[x], attr))
 
         cmd.delete(tempConst)
@@ -193,39 +193,15 @@ class MoveMyObjects(object):
         else:
             om.MGlobal.displayWarning('You have to save a position first!')
 
-    def saveAnimation(self, *args):
-        nodes = cmd.ls(sl=1)
-        if nodes:
-            # Get keyframe attrs from selected (Basically turns . to _
-            # and expands single objects to object attributes)
-            attrs = []
-            for node in nodes:
-                # Channels can sometimes be None for some reason... So
-                # check that.
-                att = cmd.keyframe(node, q=1, n=1)
-                if att:
-                    attrs.extend(att)
-            print attrs
-
-            # Find keyframes on current time.  If there are, add them to
-            # keys
-            time = cmd.currentTime(q=1)
-            for attr in attrs:
-                ky = cmd.keyframe(attr, q=1, iv=1, t=(time, time))
-                if ky:
-                    keys[attr] = ky
-                    allKeys[attr] = cmd.keyframe(attr, q=1, iv=1)
-            attrs = keys.keys()
-            selectedKeys = False
-
-mmo = None
+try:
+    mmo
+except NameError:
+    mmo = MoveMyObjects()
 
 
 def ui():
     '''Wrapper to simplify usage for basic users for MoveMyObjects().ui'''
     global mmo
-    if not mmo:
-        mmo = MoveMyObjects()
     mmo.ui()
 
 
@@ -233,8 +209,6 @@ def savePosition():
     '''Wrapper to simplify usage for basic users for
     MoveMyObjects().savePosition'''
     global mmo
-    if not mmo:
-        mmo = MoveMyObjects()
     mmo.savePosition()
 
 
@@ -242,8 +216,6 @@ def applyPosition():
     '''Wrapper to simplify usage for basic users for
     MoveMyObjects().applyPosition'''
     global mmo
-    if not mmo:
-        mmo = MoveMyObjects()
     mmo.applyPosition()
 
 if __name__ == '__main__':

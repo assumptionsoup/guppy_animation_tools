@@ -746,7 +746,7 @@ def enableUndo(apply=None):
         if not settings.undoState:
             try:
                 cmd.undoInfo(cck=1)  # close chunk
-            except:
+            except AttributeError:
                 cmd.undoInfo(swf=1)  # turn undo back on
                 cmd.undoInfo(q=1, un=0)  # needs this to work for some reason
             settings.undoState = 1
@@ -757,7 +757,7 @@ def disableUndo():
     if settings.undoState:
         try:
             cmd.undoInfo(ock=1)  # Open chunk
-        except:
+        except AttributeError:
             cmd.undoInfo(swf=0)  # turn undo off
         settings.undoState = 0
 

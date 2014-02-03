@@ -64,7 +64,6 @@ def setKey(insert=True, useSelectedCurves=True):
 
     # Get Attributes
     attributes = selectedAttributes.get(detectionType='cursor', useSelectedCurves=useSelectedCurves)
-    selectedCurvesWereUsed = selectedAttributes.wereSelectedCurvesUsed(detectionType='cursor')
     currentFrame = cmd.currentTime(q=1)
 
     # Make extra sure attributes are unique (they should already be)
@@ -96,7 +95,7 @@ def setKey(insert=True, useSelectedCurves=True):
                 if performSelect:
                     cmd.selectKey(attr, add=1, k=1, t=(currentFrame, currentFrame))
 
-            except Exception as err:
+            except RuntimeError as err:
                 print err
                 om.MGlobal.displayError("Could not not set a key on %s." % attr)
     if attrCount:
@@ -135,7 +134,7 @@ def canInsertKey(attr):
     try:
         if cmd.keyframe(attr, query=1, keyframeCount=1) == 0:
             return 0
-    except:
+    except RuntimeError:
         return 2
 
     # You don't want to insert a keyframe if the user changed something.
@@ -258,7 +257,7 @@ def selectSimilarAttributes(detectCursor=True):
             for node in nodes:
                 try:
                     cmd.selectionConnection(selectionConnection, edit=True, select='%s.%s' % (node, attr))
-                except:
+                except RuntimeError:
                     # That attribute probably didn't exist on that node.
                     pass
 
@@ -309,11 +308,5 @@ def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribu
         nodes = cmd.listConnections('%s.%s' % (node, attribute), d=outAttr, s=inAttr, scn=1, p=findAttribute)
         if nodes:
             return nodes[0]
-    except:
+    except RuntimeError:
         om.MGlobal.displayWarning('%s has no attribute %s' % (node, attribute))
-
-'''
-if __name__ == '__main__':
-	import cleverKeys
-	reload(cleverKeys)
-'''

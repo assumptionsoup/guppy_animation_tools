@@ -262,7 +262,7 @@ def getPolygonSurfaceData(mesh, raySource, rayDir, surfaceType):
         #....nnnnoooooooooooo
         u = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0)
         v = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1)
-    except:
+    except RuntimeError:
         u = None
         v = None
 

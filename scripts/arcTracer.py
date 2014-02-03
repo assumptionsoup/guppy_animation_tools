@@ -52,7 +52,7 @@ from functools import partial
 # since it runs so slowly.
 try:
     import pointOnMesh
-except:
+except ImportError:
     pointOnMesh = None
 CONTEXTNAME = 'arcTracerCtx'
 
@@ -81,7 +81,7 @@ def pluginLoaded():
     if not cmd.pluginInfo('arcTracer', query=1, l=1):
         try:
             cmd.loadPlugin('arcTracer.py')
-        except:
+        except RuntimeError:
             om.MGlobal.displayError("Arc Tracer plugin not found.  Make sure it is installed or loaded before running this command")
             return False
     return True
@@ -347,7 +347,7 @@ def update(arcTracer, forceUpdate=False):
     try:
         # Only recent versions of maya can query the cycle check.
         cycleCheck = cmd.cycleCheck(q=1, e=1)
-    except:
+    except AttributeError:
         cycleCheck = 1
     cmd.cycleCheck(e=0)
 

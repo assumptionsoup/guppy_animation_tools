@@ -55,14 +55,14 @@ def zeroSelection():
             if isinstance(default, collections.Iterable) and len(default):
                 try:
                     cmd.setAttr(attr, default[0])
-                except:
+                except RuntimeError:
                     # Maybe a compound?
                     om.MGlobal.displayError("Sorry, but I couldn't reset the attribute: %s" % attr)
             else:
                 # Probably a string or something weird.  Actually, I'm
                 # curious.  So I want to know what would fail..
                 om.MGlobal.displayError("Sorry, but I don't know how to deal with the attribute: %s" % attr)
-        except:
+        except RuntimeError:
             # Print out error so I can debug any further problems if
             # they appear...
             om.MGlobal.displayError("Sorry, what is this? %s" % attr)
