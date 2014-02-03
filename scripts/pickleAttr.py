@@ -2,28 +2,28 @@
 later.
 
 *******************************************************************************
-	License and Copyright
-	Copyright 2010 Eric Pavey
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    License and Copyright
+    Copyright 2010 Eric Pavey
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ''''''*************************************************************************
 
-	Author: Eric Pavey
-	Modified by: Jordan Hueckstaedt
-	Originally Posted on: http://http://www.akeric.com/blog/?p=1049
-	Re-licensed to LGPL with permission.  Original snippet is under the Apache
-	License v2.0
+    Author: Eric Pavey
+    Modified by: Jordan Hueckstaedt
+    Originally Posted on: http://http://www.akeric.com/blog/?p=1049
+    Re-licensed to LGPL with permission.  Original snippet is under the Apache
+    License v2.0
 
 *******************************************************************************
 '''

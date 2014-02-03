@@ -2,28 +2,26 @@
 could probably become a pretty useful wrapper for Open Maya ray intersections.
 
 *******************************************************************************
-	License and Copyright
-	Copyright 2012 Jordan Hueckstaedt
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    License and Copyright
+    Copyright 2012-2014 Jordan Hueckstaedt
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************
 ''''''
-	Author:........Jordan Hueckstaedt
-	Website:.......RubberGuppy.com
-	Email:.........AssumptionSoup@gmail.com
-	Work Status:...Looking for work!  If you have a job where I can write tools
-				   like this or rig characters, hit me up!
+    Author:........Jordan Hueckstaedt
+    Website:.......RubberGuppy.com
+    Email:.........AssumptionSoup@gmail.com
 
 ****************************************************************************'''
 
@@ -132,7 +130,8 @@ def castRay(clickPosition, wireframeMode=False):
     clickDirection = [clickDirection[x] + clickPoint[x] for x in xrange(len(clickDirection))]
 
     if wireframeMode:
-        # Find All Visible Meshes.  It works in wireframe mode, which I've had the more efficient method fail at before.
+        # Find All Visible Meshes.  It works in wireframe mode, which
+        # I've had the more efficient method fail at before.
         shapes = cmd.ls(g=1, v=1)
     else:
         # Grab only mesh under pointer
@@ -155,8 +154,9 @@ def rayIntersect(mesh, point, direction):
     # Determine surface type since each intersection is dependant on type.
     surfaceType = cmd.ls(mesh, st=1)[-1]
 
-    # Why are the nurbs and polygon intersect functions so different?  One uses MPoint the other MFloatPoint.
-    # There is a REASON that python is a DUCK TYPED language autodesk.
+    # Why are there different nurbs and polygon intersect functions?
+    # One uses MPoint the other MFloatPoint. There is a REASON that
+    # python is a DUCK TYPED language autodesk.
     surfaceData = None
     if surfaceType == 'nurbsSurface':
         surfaceData = getNurbsSurfaceData(mesh, raySource, rayDir, surfaceType)
@@ -167,7 +167,8 @@ def rayIntersect(mesh, point, direction):
 
 
 def getNurbsSurfaceData(mesh, raySource, rayDir, surfaceType):
-    # Find nurbs intersection.  om.kMFnNurbsEpsilon was the secret sauce for this sucker to work
+    # Find nurbs intersection.  om.kMFnNurbsEpsilon was the secret sauce
+    # for this sucker to work
     worldSpace = om.MSpace.kWorld
     raySource = om.MPoint(raySource)
     rayDir = om.MVector(rayDir)
@@ -185,7 +186,7 @@ def getNurbsSurfaceData(mesh, raySource, rayDir, surfaceType):
     distance = distanceUtil.asDoublePtr()
 
     fnSurface = om.MFnNurbsSurface(getDagPath(mesh))
-    fnSurface.intersect(	raySource,
+    fnSurface.intersect(    raySource,
                          rayDir,
                          u,  # U position - Double
                          v,  # V position - Couble
@@ -219,12 +220,12 @@ def getPolygonSurfaceData(mesh, raySource, rayDir, surfaceType):
     # Find polygon intersection.
     worldSpace = om.MSpace.kWorld
     resultPoint = om.MFloatPoint()
-    # hitRayParam = om.MScriptUtil().asFloatPtr()	#Don't ever do this.
+    # hitRayParam = om.MScriptUtil().asFloatPtr()    #Don't ever do this.
     hitRayParamUtil = om.MScriptUtil()
     hitRayParam = hitRayParamUtil.asFloatPtr()
 
     fnMesh = om.MFnMesh(getDagPath(mesh))
-    fnMesh.closestIntersection(	raySource,
+    fnMesh.closestIntersection(    raySource,
                                 rayDir,
                                 None,  # faceIds
                                 None,  # triIds
@@ -252,11 +253,11 @@ def getPolygonSurfaceData(mesh, raySource, rayDir, surfaceType):
 
     # Try to get UV point.  I've seen this fail.  Due to lack of uv's.  Don't ask.
     try:
-        fnMesh.getUVAtPoint(	om.MPoint(resultPoint),
-                             uvPoint,  # float2 & 	uvPoint,
+        fnMesh.getUVAtPoint(    om.MPoint(resultPoint),
+                             uvPoint,  # float2 &     uvPoint,
                              worldSpace,
-                             None,  # const MString * 	uvSet = NULL,
-                             None)  # int * 	closestPolygon = NULL
+                             None,  # const MString *     uvSet = NULL,
+                             None)  # int *     closestPolygon = NULL
         # And this accesses it.  A 2 dimentional array to get a 1 dimensional array.  Makes...sense...right?
         #....nnnnoooooooooooo
         u = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0)
@@ -268,10 +269,10 @@ def getPolygonSurfaceData(mesh, raySource, rayDir, surfaceType):
     # With the closest vert, you could make a vertex constraint thing, without needed a UV.
     closestPolygonUtil = om.MScriptUtil()
     closestPolygon = closestPolygonUtil.asIntPtr()
-    fnMesh.getClosestPoint(	om.MPoint(resultPoint),
+    fnMesh.getClosestPoint(    om.MPoint(resultPoint),
                             om.MPoint(),  # theClosestPoint point storage
                             worldSpace,
-                            closestPolygon)  # int * 	closestPolygon = NULL
+                            closestPolygon)  # int *     closestPolygon = NULL
     closestVertex = getClosestPointFromPolygon(om.MPoint(resultPoint), fnMesh, closestPolygon)
 
     if distance > 0.0:
@@ -303,8 +304,10 @@ def getClosestPointFromPolygon(point, fnMesh, polygonId):
 
 
 def createFollicle(surfaceData, name='follicleOnSurface'):
-    # Create follicle at point on mesh.
-    # Just for fun, lets break convention on this command and have the type come first instead of the name
+    '''Creates and returns a follicle at the given point on a mesh.'''
+
+    # Just for fun, lets break convention on this command and have the
+    # type come first instead of the name
     follicle = cmd.createNode('transform', n=name)
     follicleShape = cmd.createNode('follicle', n='%sShape#' % name, p=follicle)
 
@@ -323,8 +326,3 @@ def createFollicle(surfaceData, name='follicleOnSurface'):
     cmd.setAttr('%s.v' % follicle, 0)
     cmd.select(follicle)
     return follicle
-
-
-if __name__ == '__main__':
-    reload(PointOnMesh)
-    pass

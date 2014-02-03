@@ -1,3 +1,20 @@
+/******************************************************************************
+    License and Copyright
+    Copyright 2012-2014 Jordan Hueckstaedt
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+******************************************************************************/
+
 global proc AEarcTracerTemplate( string $nodeName )
 {
 	// Put our attributes into a scrolled layout field
@@ -12,28 +29,28 @@ global proc AEarcTracerTemplate( string $nodeName )
 		editorTemplate -addControl -ann "Set to zero to only calculate whole frames." "maxSubframes";
 		editorTemplate -addControl -ann "" "showArc";
 		editorTemplate -addControl -ann "Display the arc in front of everything else in the scene." "overlayArc";
-		
+
 		editorTemplate -addControl -ann "" "showFrameNumbers";
 		editorTemplate -addControl -ann "Shows a circle along the arc where a frame occurs." "showFrameMarkers";
 		editorTemplate -addControl -ann "Frame markers will stay the same size independent of zoom." "frameMarkersScaleToCamera";
 		editorTemplate -addControl -ann "" "frameMarkerSize";
 		editorTemplate -addControl -ann "" "updateOnPlayback";
-		
+
 		editorTemplate -ann "Only use this setting if the arc tracer appears broken." -addControl "useRefreshMode" "AEarcTracerFlickerToggleUpdate";
 		//editorTemplate -addControl -ann "" "update";
 		editorTemplate -callCustom "AEarcTracerUpdateNew" "AEarcTracerUpdateReplace" "update";
 
 		//frame markers scale to camera
 		editorTemplate -endNoOptimize;
-		
+
 		editorTemplate -beginLayout "Colors" -collapse 0;
 			editorTemplate -addControl "pastColor";
 			editorTemplate -addControl "currentColor";
 			editorTemplate -addControl "futureColor";
-			
-		editorTemplate -endLayout;	
+
+		editorTemplate -endLayout;
 	editorTemplate -endLayout;
-	
+
 	//Hide attributes the user isn't supposed to touch
 	editorTemplate -suppress "position";
 	editorTemplate -suppress "lastFrame";
@@ -41,20 +58,20 @@ global proc AEarcTracerTemplate( string $nodeName )
 	editorTemplate -suppress "traceVertex";
 	editorTemplate -suppress "traceObj";
 	editorTemplate -suppress "follicle";
-	
+
 	//Locator stuff pulled from locator file.  Wheeee!
 	editorTemplate -beginLayout (uiRes("m_AElocatorTemplate.kLocatorAttributes")) -collapse 1;
 		AElocatorCommon $nodeName;
 	editorTemplate -endLayout;
 	AElocatorInclude $nodeName;
-	
+
 	editorTemplate -addExtraControls;
 	editorTemplate -endScrollLayout;
 
 }
 
 
-// This function is called when the Attribute Editor page is 
+// This function is called when the Attribute Editor page is
 // first created for an arc tracer node
 global proc AEarcTracerUpdateNew( string $attrName )
 {
@@ -62,7 +79,7 @@ global proc AEarcTracerUpdateNew( string $attrName )
 	tokenize($attrName, ".", $nodeName);
 	string $moduleName = `getAttr ($nodeName[0] + ".moduleName")`;
 
-	// Push the Attribute Editor UITemplate 
+	// Push the Attribute Editor UITemplate
 	setUITemplate -pst attributeEditorPresetsTemplate;
 
 	// Create a nice button.
@@ -74,8 +91,8 @@ global proc AEarcTracerUpdateNew( string $attrName )
 		-an arcTracerUpdateButton "right"
 		-af arcTracerUpdateButton "bottom" 3
 	AEarcTracerFormLayout;
-	
-	// Pop to restore the UITemplate 
+
+	// Pop to restore the UITemplate
 	setUITemplate -ppt;
 }
 
@@ -92,5 +109,5 @@ global proc AEarcTracerUpdateReplace( string $attrName )
 global proc AEarcTracerFlickerToggleUpdate( string $nodeName ){
 	//Disable updateOnPlayback if Refresh Mode is enabled
 	int $refresh = getAttr($nodeName + ".useRefreshMode");
-	editorTemplate -dimControl $nodeName "updateOnPlayback" $refresh;	
+	editorTemplate -dimControl $nodeName "updateOnPlayback" $refresh;
 }

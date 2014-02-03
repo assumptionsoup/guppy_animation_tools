@@ -7,37 +7,35 @@ However, using savePositions and applyPositions directly can save and restore
 multiple objects.
 
 *******************************************************************************
-	License and Copyright
-	Copyright 2012 Jordan Hueckstaedt
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    License and Copyright
+    Copyright 2012-2014 Jordan Hueckstaedt
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ''''''*************************************************************************
 
-	Author:........Jordan Hueckstaedt
-	Website:.......RubberGuppy.com
-	Email:.........AssumptionSoup@gmail.com
-	Work Status:...Looking for work!  If you have a job where I can write tools
-				   like this or rig characters, hit me up!
+    Author:........Jordan Hueckstaedt
+    Website:.......RubberGuppy.com
+    Email:.........AssumptionSoup@gmail.com
 
 ****************************************************************************'''
 
 import maya.cmds as cmd
 import maya.OpenMaya as om
 
-#		from moveMyObjects import MoveMyObjects
-#		mmo = MoveMyObjects()
-#		mmo.ui()
+#        from moveMyObjects import MoveMyObjects
+#        mmo = MoveMyObjects()
+#        mmo.ui()
 
 
 def enableUndo():
@@ -119,9 +117,9 @@ def applyPositions(positions, objects):
             raise IndexError('Number of positions(%d) to objects(%d) were not compatible' % (len(positions), len(objects)))
 
     for x in range(len(positions)):
-        # Don't constraint directly to selected, since it could be something special
-        # or have stuff locked.  Create a duplicate of selected group, and constrain
-        # that
+        # Don't constraint directly to selected, since it could be
+        # something special or have stuff locked.  Create a duplicate of
+        # selected group, and constrain that
         cmd.xform(tempGroup, ws=1, matrix=positions[x])
         dummyGroup = duplicateGroup(objects[x], 'jh_applyPosDummy_tmpGrp')
         tempConst = cmd.parentConstraint(tempGroup, dummyGroup)
@@ -198,16 +196,19 @@ class MoveMyObjects(object):
     def saveAnimation(self, *args):
         nodes = cmd.ls(sl=1)
         if nodes:
-            # Get keyframe attrs from selected (Basically turns . to _ and expands single objects to object attributes)
+            # Get keyframe attrs from selected (Basically turns . to _
+            # and expands single objects to object attributes)
             attrs = []
             for node in nodes:
-                # Channels can sometimes be None for some reason... So check that.
+                # Channels can sometimes be None for some reason... So
+                # check that.
                 att = cmd.keyframe(node, q=1, n=1)
                 if att:
                     attrs.extend(att)
             print attrs
 
-            # Find keyframes on current time.  If there are, add them to keys
+            # Find keyframes on current time.  If there are, add them to
+            # keys
             time = cmd.currentTime(q=1)
             for attr in attrs:
                 ky = cmd.keyframe(attr, q=1, iv=1, t=(time, time))
@@ -221,7 +222,7 @@ mmo = None
 
 
 def ui():
-    # Wrapper to simplify usage for basic users for MoveMyObjects().ui
+    '''Wrapper to simplify usage for basic users for MoveMyObjects().ui'''
     global mmo
     if not mmo:
         mmo = MoveMyObjects()
@@ -229,7 +230,8 @@ def ui():
 
 
 def savePosition():
-    # Wrapper to simplify usage for basic users for MoveMyObjects().savePosition
+    '''Wrapper to simplify usage for basic users for
+    MoveMyObjects().savePosition'''
     global mmo
     if not mmo:
         mmo = MoveMyObjects()
@@ -237,7 +239,8 @@ def savePosition():
 
 
 def applyPosition():
-    # Wrapper to simplify usage for basic users for MoveMyObjects().applyPosition
+    '''Wrapper to simplify usage for basic users for
+    MoveMyObjects().applyPosition'''
     global mmo
     if not mmo:
         mmo = MoveMyObjects()

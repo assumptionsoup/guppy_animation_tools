@@ -1,47 +1,45 @@
 '''cleverKeys is meant to improve setting keys intuitively in Maya.
 
-If the mouse is over the graph editor, and a curve is selected, it keys the
-attribute of the curve, otherwise, it keys the attributes selected there.  	If
-the mouse is not over the graph editor, it keys the attributes selected in the
-channel box.  If the channelBox is closed it will key all the attributes on the
-selected node.  It attempts to use the "Insert Key" function which makes keys
-match the curvature of the surrounding keys whenever possible.  To use this
-module, call setKey()
+If the mouse is over the graph editor, and a curve is selected, it keys
+the attribute of the curve, otherwise, it keys the attributes selected
+there. If the mouse is not over the graph editor, it keys the attributes
+selected in the channel box.  If the channelBox is closed it will key
+all the attributes on the selected node.  It attempts to use the "Insert
+Key" function which makes keys match the curvature of the surrounding
+keys whenever possible.  To use this module, call setKey()
 
 *******************************************************************************
-	License and Copyright
-	Copyright 2012 Jordan Hueckstaedt
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    License and Copyright
+    Copyright 2012-2014 Jordan Hueckstaedt
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
+    This program is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at your
+    option) any later version.
 
-	You should have received a copy of the GNU Lesser General Public License
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************
 ''''''
-	Author:........Jordan Hueckstaedt
-	Website:.......RubberGuppy.com
-	Email:.........AssumptionSoup@gmail.com
-	Work Status:...Looking for work!  If you have a job where I can write tools
-				   like this or rig characters, hit me up!
+    Author:........Jordan Hueckstaedt
+    Website:.......RubberGuppy.com
+    Email:.........AssumptionSoup@gmail.com
 
 *******************************************************************************
 '''
 
 __author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012'
+__copyright__ = 'Copyright 2012-2014'
 __license__ = 'LGPL v3'
 __version__ = '1.08'
 __email__ = 'AssumptionSoup@gmail.com'
 __status__ = 'Production'
-__date__ = '6-24-2012'
 
 import maya.cmds as cmd
 import maya.mel as mel
@@ -53,17 +51,16 @@ import selectedAttributes
 def toggleDebug():
     selectedAttributes.toggleDebug()
 
-# The real methods
-
 
 def setKey(insert=True, useSelectedCurves=True):
     '''Sets clever keys.  Hohoho.
 
-    If the mouse is over the graph editor, it keys the attributes selected there.  	Otherwise it keys the
-    attributes selected in the channel box.  If the channelBox is closed it will key all the attributes
-    on the selected node.  It attempts to use the "Insert Key" function which makes keys match the
-    curvature of the surrounding keys whenever possible.  Set insert parameter to false to disable
-    this behavior.'''
+    If the mouse is over the graph editor, it keys the attributes selected
+    there.  Otherwise it keys the attributes selected in the channel box. If
+    the channelBox is closed it will key all the attributes on the selected
+    node.  It attempts to use the "Insert Key" function which makes keys match
+    the curvature of the surrounding keys whenever possible.  Set insert
+    parameter to false to disable this behavior.'''
 
     # Get Attributes
     attributes = selectedAttributes.get(detectionType='cursor', useSelectedCurves=useSelectedCurves)
@@ -74,8 +71,8 @@ def setKey(insert=True, useSelectedCurves=True):
     attributes = list(set(attributes))
 
     if cmd.optionVar(ex='animBlendingOpt') and cmd.optionVar(q='animBlendingOpt') == 0:
-        # PairBlend creation is disabled.  All incomming connections on attributes will spit out
-        # warnings if we try to key them.
+        # PairBlend creation is disabled.  All incomming connections on
+        # attributes will spit out warnings if we try to key them.
         removeConnectedAttributes(attributes)
 
     attrCount = 0
@@ -94,7 +91,8 @@ def setKey(insert=True, useSelectedCurves=True):
                 cmd.setKeyframe(attr, i=insertAttr)
                 attrCount += 1
 
-                # Select it if in between selected keys, or if adding new keys and the last one was selected.
+                # Select it if in between selected keys, or if adding
+                # new keys and the last one was selected.
                 if performSelect:
                     cmd.selectKey(attr, add=1, k=1, t=(currentFrame, currentFrame))
 
@@ -108,26 +106,30 @@ def setKey(insert=True, useSelectedCurves=True):
 
 
 def selectNewKeyframe(attr):
-    '''Determines if a new keyframe should be selected on the given attribute after being
-    created on the current frame.  Returns True or False.'''
+    '''Determines if a new keyframe should be selected on the given attribute
+    after being created on the current frame.  Returns True if the keyframes
+    were selected.'''
 
     # Find out the frame number of each selected key
     keys = cmd.keyframe(attr, q=1, timeChange=1, sl=1)
     if keys:
-        # Find out the previous/next keys (they will be equal if either previous or next frame is missing)
+        # Find out the previous/next keys (they will be equal if either
+        # previous or next frame is missing)
         previousKey = cmd.findKeyframe(attr, which='previous')
         nextKey = cmd.findKeyframe(attr, which='next')
 
-        # If the previous and next keys were selected, we need to select the new key.
+        # If the previous and next keys were selected, we need to select
+        # the new key.
         if previousKey in keys and nextKey in keys:
             return True
     return False
 
 
 def canInsertKey(attr):
-    '''Return if a given attribute can be keyframed with the insert keyframe command option.
-    Returns the value 2 if something errored out inside.  Otherwise, it will return 0 or 1.'''
-    # Insert keyframes are keyframes that match the curvature of the current keys around them.
+    '''Return if a given attribute can be keyframed with the insert keyframe
+    command option. Returns the value 2 if something errored out inside.
+    Otherwise, it will return 0 or 1.'''
+    # Insert keys match the curvature of the existing curve.
     # They have a few limitations though...
     # You can't insert a keyframe if there are no keyframes to begin with
     try:
@@ -137,10 +139,10 @@ def canInsertKey(attr):
         return 2
 
     # You don't want to insert a keyframe if the user changed something.
-    # Thanks for keeping things consistent autodesk.  I always LOVE shit like this.
     # Keyframe always returns a list
     oldValue = cmd.keyframe(attr, query=1, eval=1)
-    # GetAttr returns a single value if only one.  Otherwise, a list of tuples ex: [(0, 0, 0)]
+    # GetAttr returns a single value if only one.  Otherwise, a list of
+    # tuples ex: [(0, 0, 0)]
     newValue = cmd.getAttr(attr)
 
     if not isinstance(newValue, collections.Iterable) and len(oldValue) == 1:
@@ -160,10 +162,10 @@ def canInsertKey(attr):
 def clearAttributes(graphEditor=None, channelBox=None):
     '''Clears any attributes selected in the graphEditor and/or channelBox.
 
-    If nothing is passed it will clear the graphEditor if it is under the cursor,
-    otherwise it will clear the channelBox.
-    If graphEditor and/or channelBox is specified it will clear those no matter
-    where the cursor is.'''
+    If nothing is passed it will clear the graphEditor if it is under the
+    cursor, otherwise it will clear the channelBox. If graphEditor and/or
+    channelBox is specified it will clear those no matter where the cursor
+    is.'''
     if graphEditor is None and channelBox is None:
         graphEditorActive, panel = selectedAttributes.isGraphEditorActive()
         if graphEditorActive:
@@ -193,16 +195,17 @@ def clearChannelBox():
 
 
 def clearGraphEditor(panel):
-    '''Deselects the attributes of the specified graphEditor panel by clearing the selectionConnection.'''
+    '''Deselects the attributes of the specified graphEditor panel by clearing
+    the selectionConnection.'''
 
     selectionConnection = selectedAttributes.getSelectionConnection(panel)
     cmd.selectionConnection(selectionConnection, e=1, clr=1)
 
 
 def syncGraphEditor():
-    '''Syncs the attributes selected in the channelBox to those in the graphEditor.
-    I don't know of any way to select channelBox attributes, so I have not been able
-    to implement the equivalent syncChannelBox.'''
+    '''Syncs the attributes selected in the channelBox to those in the
+    graphEditor. I don't know of any way to select channelBox attributes, so I
+    have not been able to implement the equivalent syncChannelBox.'''
 
     # Get channelbox attributes
     attributes = selectedAttributes.getChannelBox(expandObjects=False)
@@ -217,10 +220,12 @@ def syncGraphEditor():
 
 
 def selectSimilarAttributes(detectCursor=True):
-    '''Selects the same attributes already selected on every node in the Graph Editor.
+    '''Selects the same attributes already selected on every node in the Graph
+    Editor.
 
-    When detectCursor is true, if your cursor is not over the Graph Editor, the Channel
-    Box attributes are synced to the Graph Editor using the method syncGraphEditor().
+    When detectCursor is true, if your cursor is not over the Graph Editor, the
+    Channel Box attributes are synced to the Graph Editor using the method
+    syncGraphEditor().
     '''
 
     # Where is the cursor?
@@ -237,7 +242,8 @@ def selectSimilarAttributes(detectCursor=True):
         cmd.selectionConnection(selectionConnection, e=1, clr=1)
 
         # Process attributes
-        # Get the attribute part of node.attribute and separate out selected objects.
+        # Get the attribute part of node.attribute and separate out
+        # selected objects.
         objs = []
         for x in reversed(range(len(attributes))):
             if '.' in attributes[x]:
@@ -265,8 +271,8 @@ def selectSimilarAttributes(detectCursor=True):
 
 
 def removeConnectedAttributes(attributes):
-    '''Remove any attribute from given list that is connected to an object that is not an anim curve
-    or a pairBLend'''
+    '''Remove any attribute from given list that is connected to an object that
+    is not an anim curve or a pairBLend'''
     for attr in attributes[:]:
         connection = getFirstConnection(attr, inAttr=1)
         if connection and not mel.eval('isAnimCurve("%s")' % connection):
@@ -276,7 +282,8 @@ def removeConnectedAttributes(attributes):
 
 
 def isAttributeConnected(attr):
-    '''Test if attribute is connected to an object that is not an anim curve or a pairBlend'''
+    '''Test if attribute is connected to an object that is not an anim curve or
+    a pairBlend'''
     connection = getFirstConnection(attr, inAttr=1)
     if connection and not mel.eval('isAnimCurve("%s")' % connection):
         nodeType = cmd.ls(connection, st=1)
@@ -286,8 +293,8 @@ def isAttributeConnected(attr):
 
 
 def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribute=0):
-    '''An quick way to get a single object from an incomming or outgoing connection.'''
-    # Translated from my mel script jh_fl_fishingLine.mel
+    '''An quick way to get a single object from an incoming or outgoing
+    connection.'''
     if attribute is None:
         node, attribute = selectedAttributes.splitAttr(node)
         if not attribute:

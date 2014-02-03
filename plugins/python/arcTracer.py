@@ -1,4 +1,4 @@
-﻿'''Arc Tracer is a script/plugin combo to visually display animation arcs.
+'''Arc Tracer is a script/plugin combo to visually display animation arcs.
 
 This module is the plugin portion.  It is basically a read-only node, all the
 information that is drawn here is gathered from the script.
@@ -18,38 +18,35 @@ and it's not recommended to connect updateOnPosition to any other
 expression.
 
 *******************************************************************************
-	License and Copyright
-	Copyright 2012 Jordan Hueckstaedt
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    License and Copyright
+    Copyright 2012-2014 Jordan Hueckstaedt
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************
 ''''''
-	Author:........Jordan Hueckstaedt
-	Website:.......RubberGuppy.com
-	Email:.........AssumptionSoup@gmail.com
-	Work Status:...Looking for work!  If you have a job where I can write tools
-				   like this or rig characters, hit me up!
+    Author:........Jordan Hueckstaedt
+    Website:.......RubberGuppy.com
+    Email:.........AssumptionSoup@gmail.com
 
 ****************************************************************************'''
 
 __author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012'
+__copyright__ = 'Copyright 2012-2014'
 __license__ = 'LGPL v3'
 __version__ = '0.5'
 __email__ = 'AssumptionSoup@gmail.com'
 __status__ = 'Beta'
-__date__ = '8-24-2012'
 
 import sys
 import maya.OpenMaya as om
@@ -63,8 +60,8 @@ from copy import copy
 # Define constants
 NODENAME = "arcTracer"
 
-# ID not obtained from Autodesk.  Please let me know if it conflicts with a
-# legitimate ID.
+# ID not obtained from Autodesk.  Please let me know if it conflicts
+# with a legitimate ID.
 NODEID = om.MTypeId(0x87080)
 
 GLFT = omRender.MHardwareRenderer.theRenderer().glFunctionTable()
@@ -77,7 +74,9 @@ ORANGE = (1, .5, .25)
 
 
 class ArcNode(omMPx.MPxLocatorNode):
-    # This scripted node creates a locator which traces an object's position in time.
+    # This scripted node creates a locator which traces an object's
+    # position in time.
+
     # Node attributes
     pastFrames = om.MObject()
     futureFrames = om.MObject()
@@ -113,11 +112,13 @@ class ArcNode(omMPx.MPxLocatorNode):
         omMPx.MPxLocatorNode.__init__(self)
 
     def excludeAsLocator(self):
-        # Don't hide arcTracers with locators, even though it inherits from the locator node
+        # Don't hide arcTracers with locators, even though it inherits
+        # from the locator node
         return False
 
     def isTransparent(self):
-        # I think something was supposed to be a bit transparent...?  maybe?
+        # I think something was supposed to be a bit transparent...?
+        # maybe?
         return True
 
     def drawLast(self):
@@ -125,7 +126,8 @@ class ArcNode(omMPx.MPxLocatorNode):
         return True
 
     def printMatrixPointer(self, matrix):
-        # Helper function for printing out matrix pointer objects while debugging
+        # Helper function for printing out matrix pointer objects while
+        # debugging
         su = om.MScriptUtil()
         for x in range(4):
             for y in range(4):
@@ -144,8 +146,8 @@ class ArcNode(omMPx.MPxLocatorNode):
         return om.MVector(matrix(row, 0), matrix(row, 1), matrix(row, 2))
 
     def billboard(self, camMatrix, curPos):
-        '''Sets up the gl matrix such that an object created at curPos will face camMatrix.
-        curPos should be a list.'''
+        '''Sets up the gl matrix such that an object created at curPos will
+        face camMatrix. curPos should be a list.'''
 
         # Get initial MVectors
         camPos = self.matrixRowVector(camMatrix, 3)
@@ -246,7 +248,8 @@ class ArcNode(omMPx.MPxLocatorNode):
         cameraDg = om.MFnDependencyNode(cameraObj)
 
         # Determine if camera is orthographic and its width if it is
-        # this is needed because orthographic cameras do not actually zoom by moving in space.
+        # this is needed because orthographic cameras do not actually
+        # zoom by moving in space.
         cameraWidth = None
         if scaleToCamera:
             try:
@@ -271,12 +274,14 @@ class ArcNode(omMPx.MPxLocatorNode):
         blendSet = GLFT.glIsEnabled(omRender.MGL_BLEND)
         GLFT.glEnable(omRender.MGL_BLEND)
         if overlayArc:
-            # Save initial depth func settings so we can restore them later.
+            # Save initial depth func settings so we can restore them
+            # later.
             initialDepthFuncMS = om.MScriptUtil()
             initialDepthFunc = initialDepthFuncMS.asIntPtr()
             GLFT.glGetIntegerv(omRender.MGL_DEPTH_FUNC, initialDepthFunc)
 
-            # Always draw on top..and keep depth information (not sure what that means)
+            # Always draw on top..and keep depth information (not sure
+            # what that means)
             GLFT.glDepthFunc(omRender.MGL_ALWAYS)
 
             # Originally did this, but it fails with image planes.
@@ -373,7 +378,8 @@ class ArcNode(omMPx.MPxLocatorNode):
         GLFT.glEnd()
 
     def drawCircleNormal(self, type, segments):
-        '''Draws a circle using a basic algorithm.  Use drawCircle instead, it's faster'''
+        '''Draws a circle using a basic algorithm.  Use drawCircle instead,
+        it's faster'''
         GLFT.glBegin(type)
         for i in xrange(segments):
             angle = i * 2 * pi / segments
@@ -381,8 +387,8 @@ class ArcNode(omMPx.MPxLocatorNode):
         GLFT.glEnd()
 
     def getColor(self, color):
-        '''Retrieves the given color MObject from a color plug
-        and returns the float values as a list'''
+        '''Retrieves the given color MObject from a color plug and returns the
+        float values as a list'''
         colorPlug = om.MPlug(self.thisMObject(), color)
         color = []
         for c in xrange(colorPlug.numChildren()):
@@ -393,9 +399,9 @@ class ArcNode(omMPx.MPxLocatorNode):
         return color
 
     def drawCurve(self, positions, frames, currentFrame, pColor, fColor):
-        '''Draws a line with points on the pre-sorted given positions
-        The line starts in pColor and when frames are greater than
-        current frame it switches to fColor'''
+        '''Draws a line with points on the pre-sorted given positions The line
+        starts in pColor and when frames are greater than current frame it
+        switches to fColor'''
 
         GLFT.glLineWidth(3.0)
         GLFT.glBegin(omRender.MGL_LINES)
@@ -416,7 +422,8 @@ class ArcNode(omMPx.MPxLocatorNode):
         dpNode = om.MFnDependencyNode(self.thisMObject())
         dpNode.setName('arcTracerShape#')
 
-        # Add delete callback that will delete any associated expressions with the arc tracer
+        # Add delete callback that will delete any associated
+        # expressions with the arc tracer
         try:
             self.aboutToDeleteID = om.MNodeMessage.addNodeAboutToDeleteCallback(self.thisMObject(), self.aboutToDelete, None)
         except:
@@ -428,10 +435,11 @@ class ArcNode(omMPx.MPxLocatorNode):
             print "Could not create nameChanged callback"
 
     def nameChanged(self, node, previousName, clientData):
-        # Find any connected expressions and update node name in it.
-        # I'm sure this needs more try's somewhere.  Not really sure where.
-        # For that matter, I'm not really sure what good putting the try's in at all is.
-        # Most of the time when something goes wrong, maya just crashes anyway.
+        # Find any connected expressions and update node name in it. I'm
+        # sure this needs more try's somewhere.  Not really sure where.
+        # For that matter, I'm not really sure what good putting the
+        # try's in at all is. Most of the time when something goes
+        # wrong, maya just crashes anyway.
 
         # Find expressions.
         dpNode = om.MFnDependencyNode(self.thisMObject())
@@ -443,8 +451,9 @@ class ArcNode(omMPx.MPxLocatorNode):
             # update expressions.
             node = plugs[p].node()
 
-            # I figured this if statement out by myself from the documenation alone.  Didn't even need an example.
-            # I feel special.  It's probably not doing what I think it's doing.
+            # I figured this if statement out by myself from the
+            # documenation alone.  Didn't even need an example. I feel
+            # special.  It's probably not doing what I think it's doing.
             if node.hasFn(om.MFn.kExpression):
                 expNode = om.MFnExpression(node)
                 expContent = expNode.expression()
@@ -457,8 +466,8 @@ class ArcNode(omMPx.MPxLocatorNode):
                     print e
 
     def deleteConnected(self, fromPlug, nodeType, dgModifier, inAttr=1, outAttr=None):
-        '''Delete node connected to fromPlug of nodeType.  If nodeType is None, it will be
-        deleted regardless of type.'''
+        '''Delete node connected to fromPlug of nodeType.  If nodeType is None,
+        it will be deleted regardless of type.'''
 
         if outAttr == None:
             outAttr = not inAttr
@@ -488,21 +497,22 @@ class ArcNode(omMPx.MPxLocatorNode):
         except:
             print "Failed to do it."
 
-        # I assume these removeCallback functions are needed to clean things up
-        # However, if I call them, the callbacks don't get reinstated on redos
-        # So I'm leaving them out and hoping maya is smart enough to clean up its
-        # own garbage.  I have my doubts though...
+        # I assume these removeCallback functions are needed to clean
+        # things up However, if I call them, the callbacks don't get
+        # reinstated on redos So I'm leaving them out and hoping maya is
+        # smart enough to clean up its own garbage.  I have my doubts
+        # though...
         '''
-		try:
-			om.MMessage.removeCallback(self.aboutToDeleteID)
-		except:
-			print "Failed to remove aboutToDelete callback"
+        try:
+            om.MMessage.removeCallback(self.aboutToDeleteID)
+        except:
+            print "Failed to remove aboutToDelete callback"
 
-		try:
-			om.MMessage.removeCallback(self.nameChangedID)
-		except:
-			print "Failed to remove nameChanged callback"
-		'''
+        try:
+            om.MMessage.removeCallback(self.nameChangedID)
+        except:
+            print "Failed to remove nameChanged callback"
+        '''
 
 
 def nodeCreator():

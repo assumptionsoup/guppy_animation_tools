@@ -4,7 +4,7 @@ and updating Guppy Animation Tools for non-technical users.
 
 *******************************************************************************
     License and Copyright
-    Copyright 2013 Jordan Hueckstaedt
+    Copyright 2013-2014 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -24,7 +24,6 @@ and updating Guppy Animation Tools for non-technical users.
     Author:........Jordan Hueckstaedt
     Website:.......RubberGuppy.com
     Email:.........AssumptionSoup@gmail.com
-    Work Status:...Employed!
 ****************************************************************************'''
 
 __author__ = 'Jordan Hueckstaedt'

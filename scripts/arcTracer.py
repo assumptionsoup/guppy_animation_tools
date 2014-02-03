@@ -1,36 +1,34 @@
-﻿'''Arc Tracer is a script/plugin combo to visually display animation arcs.
+'''Arc Tracer is a script/plugin combo to visually display animation arcs.
 
 This module is the script portion.  This script is the brains of the operation.
 The plugin merely displays information gathered here.
 
 *******************************************************************************
-	License and Copyright
-	Copyright 2012 Jordan Hueckstaedt
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    License and Copyright
+    Copyright 2012-2014 Jordan Hueckstaedt
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************
 ''''''
-	Author:........Jordan Hueckstaedt
-	Website:.......RubberGuppy.com
-	Email:.........AssumptionSoup@gmail.com
-	Work Status:...Looking for work!  If you have a job where I can write tools
-				   like this or rig characters, hit me up!
+    Author:........Jordan Hueckstaedt
+    Website:.......RubberGuppy.com
+    Email:.........AssumptionSoup@gmail.com
 
 ****************************************************************************'''
 
 __author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012'
+__copyright__ = 'Copyright 2012-2014'
 __license__ = 'LGPL v3'
 __version__ = '0.5'
 __email__ = 'AssumptionSoup@gmail.com'
@@ -42,7 +40,6 @@ import maya.mel as mel
 import maya.OpenMayaUI as omui
 import maya.OpenMaya as om
 import textwrap
-import inspect
 import collections
 from math import cos, sqrt
 from operator import attrgetter
@@ -63,18 +60,19 @@ CONTEXTNAME = 'arcTracerCtx'
 import time
 average = []
 def print_timing(func):
-	def wrapper(*arg):
-		t1 = time.clock()
-		res = func(*arg)
-		t2 = time.clock()
-		#global average
-		#average.append((t2-t1)*1000.0)
-		print '%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0)
-		return res
-	return wrapper
+    def wrapper(*arg):
+        t1 = time.clock()
+        res = func(*arg)
+        t2 = time.clock()
+        #global average
+        #average.append((t2-t1)*1000.0)
+        print '%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0)
+        return res
+    return wrapper
 '''
-# use decorator: @print_timing before a function to attach print_timing to it
-# Add this somewhere after the function executed to print out the average time it took to execute that function.
+# use decorator: @print_timing before a function to attach print_timing
+# to it. Add this somewhere after the function executed to print out the
+# average time it took to execute that function.
 # global average
 # print 'Average getpoint took', round(sum(average) / float(len(average)), 4)
 
@@ -90,9 +88,11 @@ def pluginLoaded():
 
 
 def create(traceObj=None, settings=None, follicle=False):
-    '''Creates an arc tracer on the given/selected object with the given settings.
-    Use the getShortcut() function to obtain create an arc tracer with settings other
-    than the default.'''
+    '''Creates an arc tracer on the given/selected object with the given
+    settings.
+
+    Use the getShortcut() function to obtain create an arc tracer with settings
+    other than the default.'''
     # Test for plugin.
     if not pluginLoaded():
         return
@@ -123,7 +123,8 @@ def create(traceObj=None, settings=None, follicle=False):
     # Connect things up
     cmd.connectAttr('%s.%s' % (traceObj, 'message'), '%s.%s' % (arcTracer, 'traceObj'), f=1)
 
-    # Flag if trace object is a follicle, so the arcTracer node can delete it later.
+    # Flag if trace object is a follicle, so the arcTracer node can
+    # delete it later.
     if follicle:
         cmd.setAttr('%s.follicle' % arcTracer, 1)
 
@@ -147,7 +148,8 @@ def create(traceObj=None, settings=None, follicle=False):
 
     # Setup on-frame change expression.
     # Update on frame change.
-    # Adds expression option to limit updates based on playback status (hitting the play key)
+    # Adds expression option to limit updates based on playback status
+    # (hitting the play key)
     onlyUpdateOnPlayback = 0
     onlyUpdateOnFrameChange = 0
     updateOnPlayback = ''
@@ -159,13 +161,15 @@ def create(traceObj=None, settings=None, follicle=False):
     expressionName = 'arcTracerExpression1'
     expressionCommand = textwrap.dedent(
         '''
-						//Do not remove the following line or the arcTracer will no longer delete this expression when it is deleted.
-						//Any other expression that makes a connection from updateOnPlayback will also be deleted
-						//when the arcTracer is deleted.
-						$update = {0}.updateOnPlayback;
-						if ($update && {1} {0}.lastFrame != frame && !{0}.useRefreshMode)
-							python("{2}update('{0}')");
-						'''.format(arcTracer, updateOnPlayback, mName))
+        // Do not remove the following line or the arcTracer will no
+        // longer delete this expression when it is deleted.
+        // Any other expression that makes a connection from
+        // updateOnPlayback will also be deleted
+        //when the arcTracer is deleted.
+        $update = {0}.updateOnPlayback;
+        if ($update && {1} {0}.lastFrame != frame && !{0}.useRefreshMode)
+            python("{2}update('{0}')");
+        '''.format(arcTracer, updateOnPlayback, mName))
     expressionName = cmd.expression(n=expressionName, o=arcTracer, s=expressionCommand)
 
 
@@ -199,10 +203,11 @@ def getShortcut(arcTracer=None):
         om.MGlobal.displayError('%s is not an arc tracer.' % arcTracer)
         return
 
-    # Set module name.  Not nearly as specific as the one used in install(), but I think
-    # the user can be smart enough to figure it out and change the output if it's wrong.
-    # The one in install() would work here too, but I think it would confuse people with
-    # it's extreme verbosity when it may not be needed.
+    # Set module name.  Not nearly as specific as the one used in
+    # install(), but I think the user can be smart enough to figure it
+    # out and change the output if it's wrong. The one in install()
+    # would work here too, but I think it would confuse people with it's
+    # extreme verbosity when it may not be needed.
     mName = ''
     if __name__ != '__main__':
         mName = '%s.' % __name__
@@ -210,8 +215,8 @@ def getShortcut(arcTracer=None):
     # Get attributes that are not the default value.
     settings = {}
     attributes = '''pastFrames futureFrames minSubframes maxSubframes showArc overlayArc
-	showFrameNumbers showFrameMarkers frameMarkersScaleToCamera frameMarkerSize
-	updateOnPlayback useRefreshMode pastColor currentColor futureColor'''.split()
+    showFrameNumbers showFrameMarkers frameMarkersScaleToCamera frameMarkerSize
+    updateOnPlayback useRefreshMode pastColor currentColor futureColor'''.split()
     for attr in attributes:
         # Gotta love how Autodesk makes us jump through hoops here for no reason.
         value = cmd.getAttr('%s.%s' % (arcTracer, attr))
@@ -233,9 +238,10 @@ def debug():
     arcTracers = cmd.ls(type='arcTracer')
     for arcTracer in arcTracers:
         print 'On %s' % arcTracer
-        attributes = '''pastFrames futureFrames minSubframes maxSubframes showArc overlayArc
-		showFrameNumbers showFrameMarkers frameMarkersScaleToCamera frameMarkerSize
-		updateOnPlayback traceVertex follicle lastFrame'''.split()
+        attributes = '''pastFrames futureFrames minSubframes maxSubframes
+        showArc overlayArc showFrameNumbers showFrameMarkers
+        frameMarkersScaleToCamera frameMarkerSize updateOnPlayback traceVertex
+        follicle lastFrame'''.split()
         for attr in attributes:
             value = cmd.getAttr('%s.%s' % (arcTracer, attr))
             print '{0}: {1:>{2}}'.format(attr, value, len(attr) - width)
@@ -256,7 +262,8 @@ def getPoint(settings):
     clickPosition = cmd.draggerContext(CONTEXTNAME, q=1, dragPoint=1)
     surfaceData = pointOnMesh.getPoint(clickPosition, createFollicle=0)
 
-    # Limit maxSubframes on creation if they're not already set, because follicles are SLOW
+    # Limit maxSubframes on creation if they're not already set, because
+    # follicles are SLOW
     if not 'maxSubframes' in settings:
         if 'minSubframes' in settings:
             settings['maxSubframes'] = settings['minSubframes']
@@ -264,9 +271,9 @@ def getPoint(settings):
             settings['maxSubframes'] = 0
 
     if surfaceData:
-        if surfaceData.u == None or surfaceData.v == None:
+        if surfaceData.u is None or surfaceData.v is None:
             if surfaceData.type == 'mesh':
-                om.MGlobal.displayWarning('Falling back to nearest point mode.  Tell Jordan if this worked or not!')
+                om.MGlobal.displayWarning('Falling back to nearest point mode.')
                 settings['traceVertex'] = surfaceData.closestVertex
                 create(surfaceData.name, settings)
             else:
@@ -279,12 +286,12 @@ def getPoint(settings):
             om.MGlobal.displayError('Could not create arc on a %s' % surfaceData.type)
 
 
+#I WOULD NOT RECOMMEND USING THIS.  IT IS SLOW
 def atPoint(settings=None):
-    '''I WOULD NOT RECOMMEND USING THIS.  IT IS SLOW.
-    Creates a context in which the user can click on an object in the scene and
-    a point will be traced on that mesh, using either a follicle or the nearest
-    point on the mesh.  This function takes the same settings dictionary that
-    getShortcut creates.'''
+    '''Creates a context in which the user can click on an object in the scene
+    and a point will be traced on that mesh, using either a follicle or the
+    nearest point on the mesh.  This function takes the same settings
+    dictionary that getShortcut creates.'''
 
     # Test for plugin.
     if not pluginLoaded():
@@ -297,8 +304,8 @@ def atPoint(settings=None):
         if cmd.draggerContext(CONTEXTNAME, q=1, ex=1):
             cmd.deleteUI(CONTEXTNAME)
 
-        # I have found no way to test if an icon exists, other than to just attempt to create
-        # something with that icon.
+        # I have found no way to test if an icon exists, other than to
+        # just attempt to create something with that icon.
         kwargs = {'releaseCommand': partial(getPoint, settings=settings), 'cursor': 'crossHair', 'image1': 'arcTracerOnMesh.png'}
         try:
             cmd.draggerContext(CONTEXTNAME, **kwargs)
@@ -335,7 +342,8 @@ def update(arcTracer, forceUpdate=False):
     pastFrames = cmd.getAttr('%s.pastFrames' % arcTracer)
     futureFrames = cmd.getAttr('%s.futureFrames' % arcTracer)
 
-    # Disable cycle check since the update-frame expression causes a cycle (apparently)
+    # Disable cycle check since the update-frame expression causes a
+    # cycle (apparently)
     try:
         # Only recent versions of maya can query the cycle check.
         cycleCheck = cmd.cycleCheck(q=1, e=1)
@@ -370,7 +378,8 @@ def update(arcTracer, forceUpdate=False):
 
 
 def findFrameRange(pastFrames, futureFrames, currentFrame, lastFrame, timeShift, forceUpdate):
-    # Finds the frame ranges that need to be queried, so that cached data can be skipped over.
+    '''Finds the frame ranges that need to be queried, so that cached data can
+    be skipped over.'''
     pastRange = currentFrame - pastFrames
     futureRange = currentFrame + futureFrames + 1
     frameRange = [pastRange, futureRange]
@@ -428,7 +437,8 @@ def getUpdatedArcPositions(arcTracer, traceObj, frameRange, currentFrame, direct
     mesh = None
     matrixMismatch = False
     if traceVertex > -1:
-        # If we're tracing verticies, traceObj will actually be connected to a shape.  Get that shape now.
+        # If we're tracing verticies, traceObj will actually be
+        # connected to a shape.  Get that shape now.
         shape = getFirstConnection('%s.traceObj' % arcTracer, inAttr=1, findAttribute=1).split('.')[0]
 
         if refreshMode:
@@ -474,8 +484,9 @@ def getUpdatedArcPositions(arcTracer, traceObj, frameRange, currentFrame, direct
     resolution = getResolution(traceObj)
     activeView = omui.M3dView.active3dView()
 
-    # Unfortunately I can't seem to consolidate this to a function without crashing maya.
-    # And each MScriptUtil instance must be unique for the pointer to work correctly.  Thanks autodesk!
+    # Unfortunately I can't seem to consolidate this to a function
+    # without crashing maya.  Each MScriptUtil instance must be unique
+    # for the pointer to work correctly.  Thanks autodesk!
     xPos1Util = om.MScriptUtil()
     xPos1 = xPos1Util.asShortPtr()
     yPos1Util = om.MScriptUtil()
@@ -485,11 +496,14 @@ def getUpdatedArcPositions(arcTracer, traceObj, frameRange, currentFrame, direct
     yPos2Util = om.MScriptUtil()
     yPos2 = yPos2Util.asShortPtr()
 
-    # Set iterations outside the loop to enhance effeciency if minSubframes == maxSubframes.
+    # Set iterations outside the loop to enhance efficiency if
+    # minSubframes == maxSubframes.
     iterations = maxSubframes
     for x in xrange(1, len(updatedPositions)):
-        # Attempt to get the screen-space resolution to determine subframe iterations first as it's more accurate
-        # If the position is off-screen, switch to the distance based resolution.
+        # Attempt to get the screen-space resolution to determine
+        # subframe iterations first as it's more accurate.  If the
+        # position is off- screen, switch to the distance based
+        # resolution.
 
         if not minSubframes == maxSubframes:
             arc1 = om.MPoint(*updatedPositions[x].position)
@@ -507,7 +521,8 @@ def getUpdatedArcPositions(arcTracer, traceObj, frameRange, currentFrame, direct
                 # Find distance traveled in one frame
                 distance = distanceBetween(updatedPositions[x].position, updatedPositions[x - 1].position)
 
-                # Find iterations needed and the time increment for that iteration.
+                # Find iterations needed and the time increment for that
+                # iteration.
                 iterations = int(distance / resolution)
             iterations = max(minSubframes, min(maxSubframes, iterations))
 
@@ -565,17 +580,20 @@ def getResolution(traceObj):
     nearPoint = om.MPoint()  # Won't actually use this.
     farPoint = om.MPoint()
 
-    # Get points on near and far clipping planes in upper left corner of the screen.
+    # Get points on near and far clipping planes in upper left corner of
+    # the screen.
     activeView.viewToWorld(0, 0, nearPoint, farPoint)
 
-    # Get the angle between the camera, the trace object and the far clipping plane with the camera as the vertex.
+    # Get the angle between the camera, the trace object and the far
+    # clipping plane with the camera as the vertex.
     hyp = om.MVector(farPoint - cameraPoint)
     adj = om.MVector(tracePoint - cameraPoint)
     theta = hyp.angle(adj)
 
-    # Use the distance from the camera and the vector projection equation (solved for the reversed vector)
-    # to find a distance which makes the angle between the new point, the trace object and the camera
-    # 90 degrees where the trace object is the vertex.
+    # Use the distance from the camera and the vector projection
+    # equation (solved for the reversed vector) to find a distance which
+    # makes the angle between the new point, the trace object and the
+    # camera 90 degrees where the trace object is the vertex.
     hyp = adj.length() / cos(theta)
     leftPoint = cameraPoint + ((farPoint - cameraPoint) * (hyp / cameraPoint.distanceTo(farPoint)))
     # cmd.spaceLocator(n = 'leftPoint', p = (leftPoint[0], leftPoint[1], leftPoint[2]))
@@ -620,9 +638,11 @@ def distanceBetween(point1, point2):
 
 
 def getPosition(obj, frame, traceVertex, pivot=None, refreshMode=0, mesh=None, applyPivot=True):
-    # Finds the world position of a object at a given time
-    # If apply pivot is true, it finds the world position of the pivot. (Important for controllers)
-    # If traceVertex is not -1, find the position of that vertex.
+    '''Finds the world position of a object at a given time.
+
+    If apply pivot is true, it finds the world position of the pivot (Important
+    for controllers). If traceVertex is not -1, find the position of that
+    vertex.'''
 
     # Get time
     if refreshMode or traceVertex > -1 and mesh:
@@ -640,11 +660,11 @@ def getPosition(obj, frame, traceVertex, pivot=None, refreshMode=0, mesh=None, a
         point = getPointAtTime(refreshMode, mesh, traceVertex, time)
         return (point[0], point[1], point[2], frame)
 
-    # It seems like some sort of further calculation beyond worldMatrix + pivot
-    # is occuring to derive the worldspace of an object.  The xform command
-    # preforms this unknown operation correctly, but can't be queried based on
-    # time.  Hence, the following, where xform will be used if refresh mode is
-    # activated.
+    # It seems like some sort of further calculation beyond worldMatrix
+    # + pivot is occuring to derive the worldspace of an object.  The
+    # xform command preforms this unknown operation correctly, but can't
+    # be queried based on time.  Hence, the following, where xform will
+    # be used if refresh mode is activated.
     if refreshMode:
         if applyPivot:
             worldMatrix = cmd.xform(obj, q=1, ws=1, piv=1)[:3]
@@ -720,8 +740,9 @@ def getPointAtTime(refreshMode, mesh, vertexId, time):
 
 
 def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribute=0):
-    # An quick way to get a single object from an incomming or outgoing connection.
-    # Translated from my mel script jh_fl_fishingLine.mel
+    '''An quick way to get a single object from an incoming or outgoing
+    connection.'''
+    # TODO: Combine with cleverKeys version of this function.
     if not attribute:
         attribute = node.split('.')
         if len(attribute) == 2:
@@ -742,9 +763,3 @@ def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribu
 
     else:
         om.MGlobal.displayWarning('%s has no attribute %s' % (node, attribute))
-
-# arcTracker.create('locator1')
-if __name__ == '__main__':
-    reload(arcTracer)
-    # arcTracer.atPoint()
-    pass

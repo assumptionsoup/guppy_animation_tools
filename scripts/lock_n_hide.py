@@ -63,35 +63,33 @@ before the lockHideAttribute command is called in order to properly save
 the initial state of an attribute.
 
 -------------------------------------------------------------------------------
-	License and Copyright
-	Copyright 2012 Jordan Hueckstaedt
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    License and Copyright
+    Copyright 2012-2014 Jordan Hueckstaedt
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 ''''''
-	Author:........Jordan Hueckstaedt
-	Website:.......RubberGuppy.com
-	Email:.........AssumptionSoup@gmail.com
-	Work Status:...Looking for work!  If you have a job where I can write stuff
-					like this or rig characters, hit me up!
+    Author:........Jordan Hueckstaedt
+    Website:.......RubberGuppy.com
+    Email:.........AssumptionSoup@gmail.com
 
 -------------------------------------------------------------------------------
 '''
 
 # Meta.
 __author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012'
+__copyright__ = 'Copyright 2012-2014'
 __license__ = 'LGPL v3'
 __version__ = '0.4'
 __email__ = 'AssumptionSoup@gmail.com'
@@ -122,9 +120,9 @@ def loadPlugin():
 
 class AttributeState(object):
 
-    ''' Store data on attribute state and perform basic operations about that data.
-    Will not store attribute or node it is attached to, because that information
-    may change due to referencing renaminng, etc.'''
+    ''' Store data on attribute state and perform basic operations about that
+    data. Will not store attribute or node it is attached to, because that
+    information may change due to referencing renaminng, etc.'''
 
     def __init__(self, attribute, lock, hide):
         self.initialLockState = cmd.getAttr(attribute, lock=1)
@@ -180,8 +178,8 @@ class AttributeStates(object):
     Keys to this class should be attribute names, and objects stored must be
     AttributeState objects.
 
-    The primary purpose of this class is to copy new
-    states to existing keys without overriding their initial states.'''
+    The primary purpose of this class is to copy new states to existing keys
+    without overriding their initial states.'''
 
     def __init__(self):
         self.states = {}
@@ -195,10 +193,11 @@ class AttributeStates(object):
             raise KeyError(key)
 
     def __setitem__(self, key, otherState):
-        ''' Set the item if it is an AttributeState.  Will not overwrite initial states. '''
+        '''Set the item if it is an AttributeState.  Will not overwrite
+        initial states.'''
         if not isinstance(otherState, AttributeState):
             raise TypeError('AttributeStates can only be set to objects of \
-				type AttributeState.  Got %s instead' % type(otherState))
+                type AttributeState.  Got %s instead' % type(otherState))
 
         if key in self.states.keys():
             self.states[key].copyState(otherState)
@@ -222,7 +221,8 @@ def hasAttributeState(node):
     try:
         # See if attribute exists
         return mel.eval('attributeExists %s %s' % (PICKLED_ATTRIBUTE, node))
-        # getAttr is inexact and will return true if attribute is actually on shapeNode instead.
+        # getAttr is inexact and will return true if attribute is
+        # actually on shapeNode instead.
         # cmd.getAttr('%s.%s' % (node, PICKLED_ATTRIBUTE))
     except Exception as e:
         return False
@@ -243,11 +243,11 @@ def getAttributeStates(node):
 
 
 def callLockHideCommand(node, attribute, lock=-1, hide=-1):
-    ''' A simple wrapper for the lock_n_hide command.
+    '''A simple wrapper for the lock_n_hide command.
 
     Want to call this on your own?  READ THE ENTIRE DOCUMENTATION.
 
-    This method is useful because lock_n_hide has some obsfucation to help
+    This method is useful because lock_n_hide has some obfuscation to help
     prevent users from accidentally calling it (or developers who haven't read
     the documentation)'''
 
@@ -302,7 +302,8 @@ def lockHideAttribute(fullAttribute, lock=-1, hide=-1, override=False):
     Pass lock or hide 1 or 0 to set an attribute as locked or hidden.  Pass -1
     to not affect the current state.
 
-    resetAttributeState and resetNodeState should be used to restore prior states.
+    resetAttributeState and resetNodeState should be used to restore prior
+    states.
 
     Attributes set back to their original values will be cleaned automatically.
     '''
@@ -314,14 +315,16 @@ def lockHideAttribute(fullAttribute, lock=-1, hide=-1, override=False):
         attributeStates = getAttributeStates(node)
         if attribute in attributeStates.keys():
             if lock == 0 and attributeStates[attribute].initialLockState == 1:
-                om.MGlobal.displayWarning("Lock 'n Hide: Skipping %s because it was \
-				initially locked.  Use the override flag if you still want to unlock \
-				this attribute." % fullAttribute)
+                om.MGlobal.displayWarning((
+                    "Lock 'n Hide: Skipping %s because it was initially "
+                    "locked.  Use the override flag if you still want to "
+                    "unlock this attribute.") % fullAttribute)
                 return
             if hide == 0 and attributeStates[attribute].initialHideState == 1:
-                om.MGlobal.displayWarning("Lock 'n Hide: Skipping %s because it was \
-				initially hidden.  Use the override flag if you still want to unhide \
-				this attribute." % fullAttribute)
+                om.MGlobal.displayWarning((
+                    "Lock 'n Hide: Skipping %s because it was initially "
+                    "hidden.  Use the override flag if you still want to "
+                    "unhide this attribute.") % fullAttribute)
                 return
 
     # Apply command
@@ -330,19 +333,20 @@ def lockHideAttribute(fullAttribute, lock=-1, hide=-1, override=False):
 
 
 def restoreAllAttributeStates(validateStates=True):
-    ''' Restores all saved attribute states on all nodes with a PICKLED_ATTRIBUTE.
+    ''' Restores all saved attribute states on all nodes with a
+    PICKLED_ATTRIBUTE.
 
-    When validateStates is true, this function will store the current state
-    of every saved attribute as it's initial state.  Therefore it is VERY IMPORTANT
-    that this function IS NOT RUN TWICE in a row with validateStates as true.  If
-    it is, the modified states will be set as the initial states, invalidating
-    the internal state machine which does not have any sort of check against
-    this thing.  That is to say, running this method twice may seriously fuck
-    up your work.
+    When validateStates is true, this function will store the current state of
+    every saved attribute as it's initial state.  Therefore it is VERY
+    IMPORTANT that this function IS NOT RUN TWICE in a row with validateStates
+    as true.  If it is, the modified states will be set as the initial states,
+    invalidating the internal state machine which does not have any sort of
+    check against this thing.  That is to say, running this method twice may
+    seriously fuck up your work.
 
-    It is important to run this command once (and only once) after a new scene load
-    because referenced animation files will not save new locked or hidden states set
-    from the custom lockHideAttribute command.'''
+    It is important to run this command once (and only once) after a new scene
+    load because referenced animation files will not save new locked or hidden
+    states set from the custom lockHideAttribute command.'''
     for node in cmd.ls():
         attributeStates = getAttributeStates(node)
         if attributeStates.keys():
@@ -367,8 +371,8 @@ def restoreAllAttributeStates(validateStates=True):
 
 
 def resetAttributeState(attribute, lock=True, hide=True):
-    ''' Resets the lock/hidden state on the given attribute.
-    Cleanup is handled in saveAttributeState.'''
+    ''' Resets the lock/hidden state on the given attribute. Cleanup is handled
+    in saveAttributeState.'''
 
     node, attribute = selectedAttributes.splitAttr(attribute)
     attributeStates = getAttributeStates(node)
@@ -409,10 +413,11 @@ def lockHideSelected(lock=True, hide=True):
 
 
 def getScriptJob():
-    '''Gets the running scriptJob number from the global mel variable $gLock_N_HideScriptJob
-    Initializes variable to -1 if it doesn't exist'''
-    # It's best to use a mel global variable instead of a python one tied to
-    # this module instance since python can create multiple instances.
+    '''Gets the running scriptJob number from the global mel variable
+    $gLock_N_HideScriptJob Initializes variable to -1 if it doesn't exist'''
+    # It's best to use a mel global variable instead of a python one
+    # tied to this module instance since python can create multiple
+    # instances.
     if mel.eval('catchQuiet(eval("$gLock_N_HideScriptJob = $gLock_N_HideScriptJob"))'):
         return mel.eval('int $gLock_N_HideScriptJob = -1')
     else:
@@ -424,7 +429,7 @@ def setScriptJob(number):
     mel.eval('$gLock_N_HideScriptJob = %d' % number)
 
 '''############################################################################
-								User Methods
+                                User Methods
 ############################################################################'''
 
 
@@ -445,7 +450,7 @@ def emergencyReset(nodes=None):
         if hasAttributeState(node):
             if not deletePickledAttribute(node):
                 om.MGlobal.displayWarning("Lock 'n Hide: %s could not be reset.")
-                warninges += 1
+                warnings += 1
     if not warnings:
         om.MGlobal.displayInfo("Lock 'n Hide: Emergency reset completed without errors.  Please save and restart your scene to finish the operation.")
     else:
@@ -500,8 +505,9 @@ def lockHide():
 
 
 def startScriptJob():
-    ''' Starts a PostSceneRead scriptJob for the restoreAllAttributeStates method.
-    Tries to stop a previously saved scriptJob before starting a new one.
+    ''' Starts a PostSceneRead scriptJob for the restoreAllAttributeStates
+    method. Tries to stop a previously saved scriptJob before starting a new
+    one.
 
     It is VERY important that restoreAllAttributeStates is only run once during
     scene load (and therefore very important that there only be one scriptJob
@@ -523,7 +529,7 @@ def stopScriptJob():
     return False
 
 '''############################################################################
-								UI Methods
+                                UI Methods
 ############################################################################'''
 
 
@@ -553,31 +559,31 @@ def help():
     title = "Lock 'n Hide"
     generalTitle = 'General'
     general = formatUIText('''
-			Lock 'n Hide adds the ability to lock and hide attributes on referenced nodes.
+            Lock 'n Hide adds the ability to lock and hide attributes on referenced nodes.
 
-			Lock 'n Hide buttons work on attributes selected in the Channel Box.
-			If no attributes are selected, all the attributes will be affected.''')
+            Lock 'n Hide buttons work on attributes selected in the Channel Box.
+            If no attributes are selected, all the attributes will be affected.''')
     buttonsTitle = 'Buttons'
     buttons = formatUIText('''
-			The Lock button locks attributes.
+            The Lock button locks attributes.
 
-			The Lock 'n Hide button locks and hides attributes.
+            The Lock 'n Hide button locks and hides attributes.
 
-			The Reset button will unlock the selected attributes.  If no attributes
-			are selected, all the attributes on the selected node will be unlocked and unhidden.
+            The Reset button will unlock the selected attributes.  If no attributes
+            are selected, all the attributes on the selected node will be unlocked and unhidden.
 
-			The "Reset All Objects" under the Options menu will restore all the nodes in
-			the current scene to their original state.''')
+            The "Reset All Objects" under the Options menu will restore all the nodes in
+            the current scene to their original state.''')
     noteTitle = 'Note'
     note = formatUIText('''
-			Lock 'n Hide should not allow users to unlock or unhide an attribute
-			that is locked or hidden in a referenced file.  This is to protect asset
-			integrity and keep Maya's operations consistent as unlocked attributes that
-			were previously locked in a referenced file will not save/restore their current
-			data with scene.  Future versions of this script could theoretically store this
-			data in the same way that locked/unlocked states are saved now.  However, I have
-			no plans to do so at this time (I don't want studios calling to complain that I've
-			broken their pipelines).''')
+            Lock 'n Hide should not allow users to unlock or unhide an attribute
+            that is locked or hidden in a referenced file.  This is to protect asset
+            integrity and keep Maya's operations consistent as unlocked attributes that
+            were previously locked in a referenced file will not save/restore their current
+            data with scene.  Future versions of this script could theoretically store this
+            data in the same way that locked/unlocked states are saved now.  However, I have
+            no plans to do so at this time (I don't want studios calling to complain that I've
+            broken their pipelines).''')
 
     cmd.text(label=title, wordWrap=1, align='center', fn='boldLabelFont')
     cmd.separator(style='in')
@@ -608,29 +614,29 @@ def about():
     title = "About Lock 'n Hide"
     generalTitle = "The Gist of It"
     aboutText = formatUIText('''
-				Lock 'n Hide was written by Jordan Hueckstaedt.
-				It utilizes a relatively simple work around to enable locking and hiding attributes on referenced nodes.''')
+                Lock 'n Hide was written by Jordan Hueckstaedt.
+                It utilizes a relatively simple work around to enable locking and hiding attributes on referenced nodes.''')
 
     detailsTitle = "The Devil in the Details"
     details = formatUIText('''
-				Lock 'n Hide saves the current state of an attribute on scene load and uses the Maya API to force an attribute's locked
-				and keyable state.  The user can restore the original saved state of that attribute at any time.  This script
-				does not allow unlocking or unhiding referenced attributes.''')
+                Lock 'n Hide saves the current state of an attribute on scene load and uses the Maya API to force an attribute's locked
+                and keyable state.  The user can restore the original saved state of that attribute at any time.  This script
+                does not allow unlocking or unhiding referenced attributes.''')
     footerText = dedent('''
-				Lock 'n Hide Version %s
-				Copyright 2012 Jordan Hueckstaedt
-				Lock 'n Hide is released under LGPL v3 License
-				Website: rubberguppy.com
-				Email: assumptionsoup@gmail.com
+                Lock 'n Hide Version %s
+                Copyright 2012 Jordan Hueckstaedt
+                Lock 'n Hide is released under LGPL v3 License
+                Website: rubberguppy.com
+                Email: assumptionsoup@gmail.com
 
-				Special thanks to Eric Pavey for letting me release his pickle attribute code/concept under LGPL
+                Special thanks to Eric Pavey for letting me release his pickle attribute code/concept under LGPL
 
 
-				''' % __version__)  # Why do I need a blank line here for the last line to show up?  What the hell is going on?!?
+                ''' % __version__)  # Why do I need a blank line here for the last line to show up?  What the hell is going on?!?
     contactTitle = 'See a bug? Want to suggest a feature?  Contact me!'
     contact = dedent('''
 
-				''')
+                ''')
     cmd.text(label=title, wordWrap=1, align='center', fn='boldLabelFont')
     cmd.separator(style='in')
     cmd.text(label=generalTitle, wordWrap=1, align='center', fn='obliqueLabelFont')

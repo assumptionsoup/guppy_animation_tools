@@ -4,7 +4,7 @@ It is also badly in need of a rewrite.
 
 *******************************************************************************
     License and Copyright
-    Copyright 2011-2012 Jordan Hueckstaedt
+    Copyright 2011-2014 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -24,16 +24,14 @@ It is also badly in need of a rewrite.
     Author:........Jordan Hueckstaedt
     Website:.......RubberGuppy.com
     Email:.........AssumptionSoup@gmail.com
-    Work Status:...Employed!
 ****************************************************************************'''
 
 __author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2011-2013'
+__copyright__ = 'Copyright 2011-2014'
 __license__ = 'LGPL v3'
 __version__ = '1.96'
 __email__ = 'AssumptionSoup@gmail.com'
 __status__ = 'Beta'
-__date__ = '6-30-2013'
 
 import maya.cmds as cmd
 import maya.OpenMaya as om
@@ -103,15 +101,17 @@ class SAKSettings(object):
         self.absolute = cmd.optionVar(q='jh_sak_absolute')
         self.findCurrentKeys = cmd.optionVar(q='jh_sak_findCurrentKeys')
 
-        # This shouldn't happen anymore, but I accidentally made this one a single number once, and it NEEDS to be an array.  So this forces it.
+        # This shouldn't happen anymore, but I accidentally made this
+        # one a single number once, and it NEEDS to be an array.  So
+        # this forces it.
         if not isinstance(self.quickPickNums, collections.Iterable):
             self.quickPickNums = [self.quickPickNums]
 settings = SAKSettings()
 
 
 def ui():
-    """Slides the middle keys between three or more keys to the values of the first and last key.
-    Works on multiple attributes and objects at once."""
+    """Slides the middle keys between three or more keys to the values of the
+    first and last key. Works on multiple attributes and objects at once."""
 
     global settings
 
@@ -189,7 +189,8 @@ def ui():
         dc=lambda *args: startSlide(int(args[0])),  # Certain versions of Maya apparently pass INTslider values as UNICODE.  WTF
         cc=endSlide)
 
-    # Apply button is on if it's not realtime in absolute mode and if either the slider or the strength field are also on.
+    # Apply button is on if it's not realtime in absolute mode and if
+    # either the slider or the strength field are also on.
     cmd.button(
         applyButton,
         vis=(1 - settings.realtime * settings.absolute) * (1 - (1 - settings.showSlider) * (1 - settings.showSliderField)),
@@ -550,7 +551,8 @@ def setSettings(controlValue, toggle=None):
 
     global settings
     if settings.buildingSettings:
-        # Avoid recursive loop.  Not sure why this function can get called DURING a gui creation, but it does.
+        # Avoid recursive loop.  Not sure why this function can get
+        # called DURING a gui creation, but it does.
         return
 
     quickPick = ['jh_sak_settingsQuickPick%s' % x for x in range(len(settings.quickPickNums))]
@@ -588,7 +590,8 @@ def setSettings(controlValue, toggle=None):
         showQuickPick = cmd.checkBox('jh_sak_settingsShowQuickPick', q=1, v=1)
         numQuickPick = cmd.intField('jh_sak_settingsNumQuickPick', q=1, v=1)
 
-        # Correct these so they don't go under the minimum value.  Maya isn't so great at avoiding minimum values.
+        # Correct these so they don't go under the minimum value.  Maya
+        # isn't so great at avoiding minimum values.
         if numQuickPick < 1:
             numQuickPick = 1
         if maxSlider < 1:
@@ -602,7 +605,9 @@ def setSettings(controlValue, toggle=None):
 
         if numQuickPick != len(quickPickNums):
             for x in range(abs(len(quickPickNums) - numQuickPick)):
-                # Add or remove item alternating between beginning and end of list.  Apparenlty, insert can be used to append as well.
+                # Add or remove item alternating between beginning and
+                # end of list.  Apparently, insert can be used to append
+                # as well.
                 if numQuickPick < len(quickPickNums):
                     quickPickNums.pop(-1 * (x % 2))
                 elif numQuickPick > len(quickPickNums):
@@ -667,7 +672,8 @@ def updateSliderGui(value=None, fromField=None):
 
 def startSlide(slideValue):
     global settings
-    # Function called from slide GUI.  Helps efficiency by setting sliding, so key checks during slide can be avoided.
+    # Function called from slide GUI.  Helps efficiency by setting
+    # sliding, so key checks during slide can be avoided.
     updateSliderGui(slideValue)
 
     if settings.realtime and settings.absolute:
@@ -690,8 +696,8 @@ def setSlide(value, apply=None, qp=None, update=1):
     elif update:
         updateSliderGui(value)
 
-    # Perform action on keys if the mode is realtime, if the apply button has been pushed,
-    # or if a quick pick button was pushed
+    # Perform action on keys if the mode is realtime, if the apply
+    # button has been pushed, or if a quick pick button was pushed
     if (settings.realtime and settings.absolute) or apply or qp:
         loadKeys()
         updateKeys(value)
@@ -722,8 +728,8 @@ def setMode(mode):
         updateKeys()
         enableUndo()
 
-    # Reset shrink mode not working warning every time we change mode. It
-    # could be hours between the user changing modes.  They may have
+    # Reset shrink mode not working warning every time we change mode.
+    # It could be hours between the user changing modes.  They may have
     # forgotten the selection doesn't work. Okay, that may be an
     # unrealistic situation. Still, they might miss it or something.
     settings.shrinkWarning = False
@@ -761,11 +767,17 @@ def isConsecutive(nList):
 
 
 def loadKeys(reload=0):
-    # This function loads the currently selected keys.  It can be called explicitly with reload = 1 or implicitly from other functions.
-    # It also tests if these new keys are the same as the old ones and compares their values against the old ones.
-    # If they have changed it updates the keys, making things seamless and automatic for the user.  This is so the user doesn't manually have to press a "Reload Keys" button.
+    # This function loads the currently selected keys.  It can be called
+    # explicitly with reload = 1 or implicitly from other functions.  It
+    # also tests if these new keys are the same as the old ones and
+    # compares their values against the old ones.  If they have changed
+    # it updates the keys, making things seamless and automatic for the
+    # user.  This is so the user doesn't manually have to press a
+    # "Reload Keys" button.
 
-    # If the user is in the middle of sliding the slider or if there is a manual reload button and it has NOT been pushed then skip everything.
+    # If the user is in the middle of sliding the slider or if there is
+    # a manual reload button and it has NOT been pushed then skip
+    # everything.
     global settings
     if settings.manualReload and not reload or settings.sliding:
         return
@@ -783,8 +795,9 @@ def loadKeys(reload=0):
     if selectedAttributes.isGraphEditorVisible():
         attrs = cmd.keyframe(q=1, n=1, sl=1)
 
-    # If none are selected, get any keys on the current frame that are selected in the graph editor.
-    # If the graph editor isn't open, get what is selected in the channel box
+    # If none are selected, get any keys on the current frame that are
+    # selected in the graph editor.  If the graph editor isn't open, get
+    # what is selected in the channel box
     if attrs:
         for attr in attrs:
             keys[attr] = cmd.keyframe(attr, q=1, iv=1, sl=1)
@@ -792,17 +805,20 @@ def loadKeys(reload=0):
     elif settings.findCurrentKeys:
         # Get selected
         attributes = selectedAttributes.get(detectionType='panel')
-        # Get keyframe attrs from selected (Basically turns . to _ and expands single objects to object attributes)
+        # Get keyframe attrs from selected (Basically turns . to _ and
+        # expands single objects to object attributes)
         attrs = []
         for att in attributes:
             att = cmd.keyframe(att, q=1, n=1)
-            # Attributes can sometimes be None for some reason... So check that.
+            # Attributes can sometimes be None for some reason... So
+            # check that.
             if att:
                 attrs.extend(att)
         attrs = list(set(attrs))
 
         if attrs:
-            # Find keyframes on current time.  If there are, add them to keys
+            # Find keyframes on current time.  If there are, add them to
+            # keys
             time = cmd.currentTime(q=1)
             for attr in attrs:
                 ky = cmd.keyframe(attr, q=1, iv=1, t=(time, time))
@@ -813,8 +829,8 @@ def loadKeys(reload=0):
             selectedKeys = False
 
     if not attrs:
-        # No keys selected, and none under the current frame.
-        # Clear keys so we don't operate later on them when nothing is selected.
+        # No keys selected, and none under the current frame. Clear keys
+        # so we don't operate later on them when nothing is selected.
         settings.keys = {}
 
     if attrs:
@@ -843,7 +859,8 @@ def loadKeys(reload=0):
                     realNode = cmd.listConnections('%s.output' % attr, d=1, s=0, scn=1, p=1)[0].split('.')
                     default = cmd.attributeQuery(realNode[1], node=realNode[0], listDefault=1)[0]
 
-                    # Test if keys are the same.  The test is in this section for efficiency.  Sorry it's less readable.
+                    # Test if keys are the same.  The test is in this
+                    # section for efficiency.  Sorry it's less readable.
                     keyExisted = attr in gKeys.keys()
                     if not keyExisted or len(keys[attr]) != len(gKeys[attr]):
                         changed = 1
@@ -861,8 +878,14 @@ def loadKeys(reload=0):
                             # If keys are not on the same frame they have changed
                             if gKeys[attr][x]['key'] != key:
                                 changed = 1
-                            # If key is a start or end key and matches the next or previous key, it is a duplicate made on purpose.  lastValue will be changed on the real key in the middle.
-                            # So the value check needs to be avoided for these duplicates.  These duplicates are made so that start and end keys can still be manipulated.
+                            # If key is a start or end key and matches
+                            # the next or previous key, it is a
+                            # duplicate made on purpose.  lastValue will
+                            # be changed on the real key in the middle.
+                            # So the value check needs to be avoided for
+                            # these duplicates.  These duplicates are
+                            # made so that start and end keys can still
+                            # be manipulated.
                             if not newKeys[attr][x]['endKey']:
                                 # If keys do not have the same value, they have changed.
                                 if round(gKeys[attr][x]['lastValue'], 5) != round(newKeys[attr][x]['value'], 5):
@@ -875,7 +898,8 @@ def loadKeys(reload=0):
             if sorted(gKeys.keys()) != sorted(newKeys.keys()):
                 changed = 1
             if not changed:
-                # Don't do anything else, these are the same keys and the user hasn't touched them.
+                # Don't do anything else, these are the same keys and
+                # the user hasn't touched them.
                 return
 
     # Keys will get reloaded beyond this point!
@@ -909,7 +933,9 @@ def loadKeys(reload=0):
         if count > 0:
             level /= count
 
-        # Find out how many keys per attribute for shrink, and add level to each key (it's the same value, but it doesn't make sense to put it on a lower level)
+        # Find out how many keys per attribute for shrink, and add level
+        # to each key (it's the same value, but it doesn't make sense to
+        # put it on a lower level)
         keys = []
         for attr in newKeys.keys():
             keys.append(len(newKeys[attr]))
@@ -959,7 +985,8 @@ def loadKeys(reload=0):
 
 def updateKeys(percent=None):
     global settings
-    # Disable undo so setting multiple attributes don't rack up in the undo queue
+    # Disable undo so setting multiple attributes don't rack up in the
+    # undo queue
     disableUndo()
 
     if percent == None:
@@ -969,8 +996,11 @@ def updateKeys(percent=None):
         if percent == 0.0:  # Zero is meant to be a reset of sorts.  On relative mode I don't know why someone would want to move keys by 0,
             settings.lastPercent = 0.0  # so if they try to do this, they're probably attempting to reset things.
         if settings.compoundPercentage:
-            # Creates a bell curve between -100 and 100.  The top of the bell curve is probably more of a point, with -100 and 100 being asymptotes.
-            # It's been awhile since I've done stuff like this.  Quite frustrating.  I'm sure there's a better way to do it.
+            # Creates a bell curve between -100 and 100.  The top of the
+            # bell curve is probably more of a point, with -100 and 100
+            # being asymptotes. It's been awhile since I've done stuff
+            # like this.  Quite frustrating.  I'm sure there's a better
+            # way to do it.
 
             if settings.lastPercent == 0.0:
                 # Avoid divide by zero messages.
@@ -1026,10 +1056,11 @@ def updateKeys(percent=None):
 
 
     mode = settings.mode
-    # Force mode to average if percent is zero and reset on apply is set and it is relative.
-    # This forces the key to the middle of the surrounding keys when zero is pressed - like a reset button.
-    # Which zero is always supposed to mean.  In my mind.  And tool :D
-    # I might take this out if it just doesn't feel consistent enough.
+    # Force mode to average if percent is zero and reset on apply is set
+    # and it is relative. This forces the key to the middle of the
+    # surrounding keys when zero is pressed - like a reset button. Which
+    # zero is always supposed to mean.  In my mind.  And tool :D I might
+    # take this out if it just doesn't feel consistent enough.
     fakeReset = percent == 0.0 and settings.resetOnApply and not settings.absolute and mode == 'Blend'
     if fakeReset:
         mode = 'Average'

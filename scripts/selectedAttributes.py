@@ -4,28 +4,26 @@ attributes in the channelbox and graph editor.
 The primary method associated with this module is the "get" method.'''
 
 '''****************************************************************************
-	License and Copyright
-	Copyright 2012 Jordan Hueckstaedt
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    License and Copyright
+    Copyright 2012-2014 Jordan Hueckstaedt
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
 
-	You should have received a copy of the GNU Lesser General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************
 
-	Author:........Jordan Hueckstaedt
-	Website:.......RubberGuppy.com
-	Email:.........AssumptionSoup@gmail.com
-	Work Status:...Looking for work!  If you have a job where I can write stuff
-				   like this or rig characters, hit me up!
+    Author:........Jordan Hueckstaedt
+    Website:.......RubberGuppy.com
+    Email:.........AssumptionSoup@gmail.com
 '''
 
 __author__ = 'Jordan Hueckstaedt'
@@ -87,13 +85,15 @@ def printCalled(fn):
 def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True):
     '''Get selected attributes using the given detection type.
 
-    A detectionType of 'cursor' will find selected attributes in the graph editor if the user
-    has their cursor over that panel.  Otherwise, any attributes selected in the channelbox
-    will be used.  If the channelbox is closed, attributes on the selected nodes will be returned.
+    A detectionType of 'cursor' will find selected attributes in the graph
+    editor if the user has their cursor over that panel.  Otherwise, any
+    attributes selected in the channelbox will be used.  If the channelbox is
+    closed, attributes on the selected nodes will be returned.
 
-    A detectionType of 'panel' will find selected attributes in the graph editor if it is open.
-    If it is closed or minimized, it will return attributes selected in the channelbox.  If the
-    channelbox is closed, it will grab attributes on the selected nodes.
+    A detectionType of 'panel' will find selected attributes in the graph
+    editor if it is open. If it is closed or minimized, it will return
+    attributes selected in the channelbox.  If the channelbox is closed, it
+    will grab attributes on the selected nodes.
     '''
 
     # Determine which attributes to grab.
@@ -111,10 +111,12 @@ def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True):
 
 @printCalled
 def useGraphAttributes(detectionType='cursor'):
-    '''Determines whether to use the graph editor or not based on the detection type'''
+    '''Determines whether to use the graph editor or not based on the detection
+    type'''
 
     if detectionType.lower() == 'cursor':
-        # Find out if the graph editor is under cursor, and the graphPanel if it is
+        # Find out if the graph editor is under cursor, and the
+        # graphPanel if it is
         useGraphAttributes, panel = isGraphEditorActive()
     elif detectionType.lower() == 'panel':
         # Use the graph editor if it is open.
@@ -146,9 +148,10 @@ def homogonizeName(fullPath):
         fullAttr = '%s.%s' % (obj, attr)
         longName = cmd.attributeName(fullAttr, l=1)
         if ' ' in longName:
-            # Maya has seen fit to sometimes give nice names instead of long names
-            # Here, we'll hope to god that the nice name correlates exactly with the long name
-            # and camel case it.  Yaaaay Autodesk.
+            # Maya has seen fit to sometimes give nice names instead of
+            # long names. Here, we'll hope to god that the nice name
+            # correlates exactly with the long name. and camel case it.
+            # Yaaaay Autodesk.
             longName = [name.capitalize() for name in longName.split()]
             longName[0] = longName[0].lower()
             longName = ''.join(longName)
@@ -163,11 +166,14 @@ def getAnimatableAttributes(obj):
 
     attrs = cmd.listAnimatable(obj)
     if attrs:
-        # Remove shapes from attributes.  List animatable includes them by default.
+        # Remove shapes from attributes.  List animatable includes them
+        # by default.
         # attrs = [attr for attr in attrs if not cmd.ls(attr.split('.')[0], s = 1)]
 
-        # Homogenize names.  (listAnimatable returns FULL paths).  ListAnimatable might return a shape instead
-        # of the original given object, so cmd.ls(attr, o = 1)[0] is needed to determine the relative path.
+        # Homogenize names.  (listAnimatable returns FULL paths).
+        # ListAnimatable might return a shape instead of the original
+        # given object, so cmd.ls(attr, o = 1)[0] is needed to determine
+        # the relative path.
         attrs = [homogonizeName(attr) for attr in attrs]
     else:
         attrs = []
@@ -179,7 +185,8 @@ def getAnimatableAttributes(obj):
 def getNonAnimatableAttributes(obj):
     '''Returns non-keyable attributes on an object.  Always returns a list.
 
-    If this fails to work again, I recommend disabling it in filterSelectedToAttributes'''
+    If this fails to work again, I recommend disabling it in
+    filterSelectedToAttributes'''
     attrs = []
 
     # Get scalar keyable attributes.  I believe only scalar attributes appear in the channel box
@@ -210,14 +217,16 @@ def getNonAnimatableAttributes(obj):
 
 @printCalled
 def filterSelectedToAttributes(selected, attributes, expandObjects, animatableOnly):
-    '''The real brains of the operation.  Filters the given objects/attributes into
-    obj.attribute pairs, keeping things homogenized with long attribute names.  Sorts
-    attributes further depending on the expandObjects and animatableOnly parameters.
+    '''The real brains of the operation.  Filters the given objects/attributes
+    into obj.attribute pairs, keeping things homogenized with long attribute
+    names.  Sorts attributes further depending on the expandObjects and
+    animatableOnly parameters.
 
-    If expandObjects is false, entire objects are returned instead of all the attributes
-    on that object.
+    If expandObjects is false, entire objects are returned instead of all the
+    attributes on that object.
 
-    if animatableOnly is true, only keyable attributes are returned from the ones given.'''
+    if animatableOnly is true, only keyable attributes are returned from the
+    ones given.'''
 
     # Seperate the attributes from the objects, the men from the boys.
     objects = []
@@ -251,12 +260,12 @@ def filterSelectedToAttributes(selected, attributes, expandObjects, animatableOn
 def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=True, animatableOnly=True):
     '''Get attributes selected in the graph editor.
 
-    If expandObjects is true, attributes are saved in the format object.attribute
-    and a lack of selection or an entire object selected will expand to that object's
-    keyable nodes.
+    If expandObjects is true, attributes are saved in the format
+    object.attribute and a lack of selection or an entire object selected will
+    expand to that object's keyable nodes.
 
-    Otherwise, the list will be a mix of object.attribute and object.  Objects will
-    not have their attributes expanded.
+    Otherwise, the list will be a mix of object.attribute and object.  Objects
+    will not have their attributes expanded.
     '''
     attributes = []
 
@@ -275,21 +284,20 @@ def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=T
 def getChannelBox(expandObjects=True, animatableOnly=True, selectedOnly=False):
     '''Gets attributes selected in the channelBox.
 
-    Will only find attributes that are selected in the channelBox if the channelbox
-    is visible.  If expandObjects is true attributes are saved in the format
-    object.attribute.  Otherwise whole objects may be returned if no attributes
-    are selected. Selected only will only return attributes if they are selected on
-    a visible channelbox.
+    Will only find attributes that are selected in the channelBox if the
+    channelbox is visible.  If expandObjects is true attributes are saved in
+    the format object.attribute.  Otherwise whole objects may be returned if no
+    attributes are selected. Selected only will only return attributes if they
+    are selected on a visible channelbox.
     '''
 
-    '''
-	This comment is currently not relevant, but may be if getNonAnimatableAttributes
-	is disabled again
-
-	When animatableOnly is false locked and unkeyable attributes that are selected
-	will be returned.  Keep in mind that unselected but visible locked and unkeyable
-	attributes will not be returned, as I have found no consistent way to determine
-	these attributes.'''
+    # This comment is currently not relevant, but may be if
+    # getNonAnimatableAttributes is disabled again
+    #
+    # When animatableOnly is false locked and unkeyable attributes that
+    # are selected will be returned.  Keep in mind that unselected but
+    # visible locked and unkeyable attributes will not be returned, as I
+    # have found no consistent way to determine these attributes.
 
     attributes = []
 
@@ -339,9 +347,10 @@ def getChannelBox(expandObjects=True, animatableOnly=True, selectedOnly=False):
                         else:
                             attributes.append(attr)
         if not selectedOnly and not animatableOnly and not selected:
-            # Mostly for shapes, since shapes do not show up in cmd.ls(), non-animatable
-            # attributes on shapes will not be added, unless we let filterSelectedToAttributes
-            # know that shapes are there.
+            # Mostly for shapes, since shapes do not show up in
+            # cmd.ls(), non-animatable attributes on shapes will not be
+            # added, unless we let filterSelectedToAttributes know that
+            # shapes are there.
             objects.extend(foundObjs)
 
     # There is at least one object selected, but no attributes
@@ -353,7 +362,8 @@ def getChannelBox(expandObjects=True, animatableOnly=True, selectedOnly=False):
 
 @printCalled
 def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribute=0):
-    '''An quick way to get a single object from an incomming or outgoing connection.'''
+    '''An quick way to get a single object from an incomming or outgoing
+    connection.'''
     # Translated from my mel script jh_fl_fishingLine.mel
     if attribute is None:
         node, attribute = splitAttr(node)
@@ -387,8 +397,8 @@ def getEditorFromPanel(panel, editorCommand):
 
 @printCalled
 def getSelectionConnection(panel='graphEditor1'):
-    '''A more robust way of determining the selection connection of a graph editor given its panel
-    Returns None if nothing is found.'''
+    '''A more robust way of determining the selection connection of a graph
+    editor given its panel Returns None if nothing is found.'''
 
     outliner = getEditorFromPanel(panel, cmd.outlinerEditor)
 
@@ -417,15 +427,19 @@ def getSelectedCurves():
                 except:
                     pass
             else:
-                # Short circut the whole loop.  If there's ever any selection that is NOT an entire curve, then NOTHING is returned
-                # Without this, other functions may operate only on curves, but ignore other selected keys, which is not desirable.
+                # Short circut the whole loop.  If there's ever any
+                # selection that is NOT an entire curve, then NOTHING is
+                # returned Without this, other functions may operate
+                # only on curves, but ignore other selected keys, which
+                # is not desirable.
                 return []
     return selection
 
 
 @printCalled
 def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True):
-    '''Returns true if selected curves took precedence while obtaining attributes'''
+    '''Returns true if selected curves took precedence while obtaining
+    attributes'''
 
     if useSelectedCurves:
         useGraph, panel = useGraphAttributes(detectionType=detectionType)
@@ -437,10 +451,10 @@ def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True):
 
 @printCalled
 def getGraphSelection(panel='graphEditor1', useSelectedCurves=True):
-    '''A robust method of finding the selected objects/attributes in the graph editor.
-    If nothing is selected, all objects in the graph outliner will be returned.  If a
-    one or more curves are selected, those curves take precedence over any other
-    selection.
+    '''A robust method of finding the selected objects/attributes in the graph
+    editor. If nothing is selected, all objects in the graph outliner will be
+    returned.  If a one or more curves are selected, those curves take
+    precedence over any other selection.
 
     Always returns a list.'''
 
@@ -475,8 +489,8 @@ def getGraphSelection(panel='graphEditor1', useSelectedCurves=True):
 
 @printCalled
 def isChannelBoxVisible(channelBox):
-    '''Returns if the channelBox is visible to the user (the user does not have another
-    control docked in front of it).'''
+    '''Returns if the channelBox is visible to the user (the user does not have
+    another control docked in front of it).'''
     chVisible = 0
 
     # Test if QT version exists:
@@ -491,10 +505,11 @@ def isChannelBoxVisible(channelBox):
 
 @printCalled
 def isGraphEditorActive():
-    '''Returns a tuple of (graphEditorState, graphEditorPanel).  GraphEditorState is true if
-    the cursor is over the graph editor, and false if it is not, or if the cursor can not be
-    queried.  The graphEditorPanel will default to 'graphEditor1' if no graph editor is
-    found under the mouse.'''
+    '''Returns a tuple of (graphEditorState, graphEditorPanel).
+    GraphEditorState is true if the cursor is over the graph editor, and false
+    if it is not, or if the cursor can not be queried.  The graphEditorPanel
+    will default to 'graphEditor1' if no graph editor is found under the
+    mouse.'''
 
     # Find out if the graph editor is under cursor
     graphEditorActive = 0
@@ -502,11 +517,12 @@ def isGraphEditorActive():
     try:
         panel = cmd.getPanel(underPointer=True)
     except:
-        # Maya is being bitchy again.  Default to channelBox and warn the user that Maya is a bitch.
-        # Yes, I've had this fail here before.  Maya told me underPointer needed to be passed a bool.
+        # Maya is being bitchy again.  Default to channelBox and warn
+        # the user that Maya is a bitch. Yes, I've had this fail here
+        # before.  Maya told me underPointer needed to be passed a bool.
         # Well, I hate to tell you Maya, but True is a bool.
         panel = None
-        om.MGlobal.displayWarning("Defaulting to channelBox because Maya won't say where your cursor is.")
+        om.MGlobal.displayWarning("Defaulting to channelBox because Maya doesn't know where your cursor is.")
 
     if panel and cmd.getPanel(typeOf=panel) == 'scriptedPanel':
         # I assume that testing for the type will be more accurate than matching the panel strings
@@ -521,8 +537,8 @@ def isGraphEditorActive():
 
 @printCalled
 def isGraphEditorVisible(panel='graphEditor1'):
-    '''Determines if the provided graph editor panel is open by finding the associated window.
-    Minimized graph editors are considered closed.'''
+    '''Determines if the provided graph editor panel is open by finding the
+    associated window. Minimized graph editors are considered closed.'''
 
     if panel and cmd.getPanel(typeOf=panel) == 'scriptedPanel':
         # I assume that testing for the type will be more accurate than matching the panel strings
@@ -542,11 +558,11 @@ def isGraphEditorVisible(panel='graphEditor1'):
 
 @printCalled
 def removeUnderworldFromPath(attributes):
-    '''This is rare, but more than one underworld -> marker in the path will break a lot of things in Maya.
-    This removes all -> from path if there is more than one.
-    Maya assumes underworld objects can't be parented.  Except Maya will parent them itself under certain
-    circumstances... Like I said, really rare.
-    Modifies attributes by reference.'''
+    '''This is rare, but more than one underworld -> marker in the path will
+    break a lot of things in Maya. This removes all -> from path if there is
+    more than one. Maya assumes underworld objects can't be parented.  Except
+    Maya will parent them itself under certain circumstances... Like I said,
+    really rare. Modifies attributes by reference.'''
     for x in range(len(attributes)):
         if attributes[x].count('->') >= 2:
             attributes[x] = attributes[x].split('->')[-1]
