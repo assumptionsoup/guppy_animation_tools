@@ -411,7 +411,10 @@ def update(force=False, blocking=True, onDays=None, checkOncePerDay=True):
     # determine everything is up to date.
     if not blocking:
         t = threading.Thread(target=_update, kwargs={'force': force})
-        t.start()
+        # Always defer starting threads or maya may crash with an xcb
+        # error if this code is run during startup (and possibly other
+        # times as well).  I encountered this problem on linux.
+        cmds.evalDeferred(t.start)
     else:
         _update(force=force)
 
