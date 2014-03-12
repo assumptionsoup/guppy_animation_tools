@@ -76,8 +76,10 @@ import os
 import subprocess
 import threading
 import datetime
-import maya.cmds as cmds
+
+import maya.cmds as _cmds
 import maya.mel as mel
+import maya.utils
 
 try:
     import guppy_animation_tools
@@ -92,6 +94,35 @@ _updateTimeFormat = '%Y-%m-%d %H:%M:%S.%f'
 _repoIsPrepped = False
 _gitEnv = None
 REPO_ORIGIN = 'https://github.com/assumptionsoup/Guppy-Animation-Tools.git'
+
+
+class ThreadedCmds(object):
+    '''
+    A wrapper around maya.cmds which routes all calls through
+    maya.utils.executeInMainThreadWithResult, ensuring that calls to
+    maya.cmds regardless of threading are safe.
+    '''
+    def __getattr__(self, item):
+        # Debugging
+        #
+        # I'll clean this up later if this whole idea of wrapping cmds
+        # with a executeInMainThreadWithResult call works out.
+
+        # import sys
+        # import inspect
+
+        # line_number =inspect.getouterframes(inspect.currentframe())[1][2]
+        # function_name = inspect.getouterframes(inspect.currentframe())[1][3]
+        # sys.__stdout__.write('Running %s from %s:%s\n' % (item, function_name, line_number))
+        # sys.__stdout__.flush()
+
+        def wrappedCmd(*args, **kwargs):
+            command = getattr(_cmds, item)
+            return maya.utils.executeInMainThreadWithResult(
+                command, *args, **kwargs)
+        return wrappedCmd
+
+cmds = ThreadedCmds()
 
 
 class GitError(IOError):
