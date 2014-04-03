@@ -1,5 +1,4 @@
-'''Guppy Animation Tools is a collection of tools to help animators
-
+'''
 *******************************************************************************
     License and Copyright
     Copyright 2012-2014 Jordan Hueckstaedt
@@ -19,14 +18,20 @@
 *******************************************************************************
 '''
 
-__all__ = [
-    'arcTracer',
-    'cleverKeys',
-    'lock_n_hide',
-    'moveMyObjects',
-    'pickleAttr',
-    'pointOnMesh',
-    'renameIt',
-    'selectedAttributes',
-    'slideAnimationKeys',
-    'zeroSelection']
+import pymel.core as pm
+from PySide import QtCore, QtGui
+import shiboken
+import maya.OpenMayaUI as omUI
+
+
+def toQtWindow(windowName):
+    ptr = omUI.MQtUtil.findWindow(windowName)
+    if ptr is not None:
+        return shiboken.wrapInstance(long(ptr), QtGui.QWidget)
+
+
+def getMayaWindow():
+    '''
+    Get the main Maya window as a QtGui.QMainWindow instance
+    '''
+    return toQtWindow(pm.melGlobals['$gMainWindow'])
