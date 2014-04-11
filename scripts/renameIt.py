@@ -25,6 +25,7 @@ A super simplistic dialog for renaming the selected nodes in Maya
 '''
 
 import re
+import platform
 
 import pymel.core as pm
 from PySide import QtCore, QtGui
@@ -227,33 +228,26 @@ class RenameDialog(QtGui.QDialog):
     #     background-color: rgb(40, 40, 40);
     # However, doing that removes the border to the fields AND
     # changes their padding.  So I'm leaving it be for now.
-    thisStylesheet = '''
-        *
-        {
-            font-size: 6pt;
-        }
-
-        QLineEdit
-        {
-            font-family: "Monospace";
-        }
-    '''
 
     def __init__(self, parent=None, closeOnRename=True, closeOnFocusLoss=True):
         super(RenameDialog, self).__init__(parent=parent,
                                            f=QtCore.Qt.FramelessWindowHint)
         self.closeOnRename = closeOnRename
         self.closeOnFocusLoss = closeOnFocusLoss
-        self.setStyleSheet(self.thisStylesheet)
+
+        font = QtGui.QFont("Bitstream Vera Sans Mono")
+        font.setStyleHint(QtGui.QFont.TypeWriter)
 
         # Build layout
         self.searchText = QtGui.QLabel(self)
         self.searchText.setText('Search')
         self.searchField = QtGui.QLineEdit(self)
+        self.searchField.setFont(font)
         self.searchField.returnPressed.connect(self.renameSelection)
         self.replaceText = QtGui.QLabel(self)
         self.replaceText.setText('Replace')
         self.replaceField = QtGui.QLineEdit(self)
+        self.replaceField.setFont(font)
         self.replaceField.returnPressed.connect(self.renameSelection)
         self.populateReplaceField()
 
@@ -289,12 +283,19 @@ class RenameDialog(QtGui.QDialog):
         checkFocusEvents(self.searchField)
         checkFocusEvents(self.replaceField)
 
-        # Set background transparent.  Only items drawn in paintEvent
-        # will be visible.  This is necessary for rounded corners.
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-        palette = QtGui.QPalette()
-        palette.setColor(QtGui.QPalette.Base, QtCore.Qt.transparent)
-        self.setPalette(palette)
+        # Transparencies only work with compositing.
+        try:
+            self.useRoundedCorners = QtGui.QX11Info.isCompositingManagerRunning()
+        except AttributeError:
+            self.useRoundedCorners = platform.system() == 'Windows'
+
+        if self.useRoundedCorners:
+            # Set background transparent.  Only items drawn in paintEvent
+            # will be visible.  This is necessary for rounded corners.
+            self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+            palette = QtGui.QPalette()
+            palette.setColor(QtGui.QPalette.Base, QtCore.Qt.transparent)
+            self.setPalette(palette)
         self.replaceField.setFocus()
 
         # Add hotkeys to detect up and down arrows
@@ -373,6 +374,9 @@ class RenameDialog(QtGui.QDialog):
                 self.historyFields[field].setText(entries[i])
 
     def paintEvent(self, event):
+        if not self.useRoundedCorners:
+            return
+
         # Add curved corners and a border to this dialog.
         lineWidth = 2
         fillColor = QtGui.QColor(65, 65, 65, 255)
