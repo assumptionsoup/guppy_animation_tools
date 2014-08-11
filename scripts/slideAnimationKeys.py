@@ -44,7 +44,6 @@ import selectedAttributes
 def setDefaultOptionVar(name, value):
     if not cmd.optionVar(exists=name):
         if isinstance(value, basestring):
-            print name, 'is string'
             cmd.optionVar(sv=(name, value))
         elif isinstance(value, collections.Iterable):
             if len(value) > 0:
