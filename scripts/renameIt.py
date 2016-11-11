@@ -29,6 +29,8 @@ import platform
 
 import pymel.core as pm
 from PySide import QtCore, QtGui
+
+import guppy_animation_tools
 import guppy_animation_tools.utils as utils
 
 
@@ -38,6 +40,8 @@ try:
 except NameError:
     _globalQtObjects = []
     _history = {'search': [], 'replace': []}
+
+_log = guppy_animation_tools.getLogger(__name__)
 
 # TODO:
 #      - Add option to enable/disable smart-padding
@@ -50,6 +54,10 @@ class InvalidNameError(ValueError):
     pass
 
 
+class RenameError(Exception):
+    pass
+
+
 def safeRename(objs, newNames):
     '''
     Safely renames the given PyNodes to the given names.
@@ -59,36 +67,52 @@ def safeRename(objs, newNames):
     the original name is restored.
     '''
 
+    objPairs = zip(objs, newNames)
+
     # Validate names
-    for obj, name in zip(objs, newNames):
-        if not pm.mel.isValidObjectName(name):
+    skipPairs = set([])
+    for objPair in objPairs:
+        obj, name = objPair
+        # Don't try to rename nodes to the same names.
+        if name == obj.nodeName(stripNamespace=True):
+            skipPairs.add(objPair)
+        elif not pm.mel.isValidObjectName(name):
             raise InvalidNameError(
                 'Cannot rename "%s" to "%s"' % (obj.nodeName(), name))
 
-    with utils.UndoChunk():
-        # Rename objects to something that I hope doesn't already exist,
-        # so that we don't run into issues trying to rename an object in
-        # our list to the name of an object that hasn't yet been
-        # renamed.
+    try:
+        with utils.UndoChunk():
+            # Rename objects to something that I hope doesn't already exist,
+            # so that we don't run into issues trying to rename an object in
+            # our list to the name of an object that hasn't yet been
+            # renamed.
 
-        oldNames = []
-        for obj in objs:
-            oldNames.append(obj.nodeName())
-            obj.rename('_' * 80)
+            for objPair in objPairs:
+                if objPair in skipPairs:
+                    continue
 
-        # Rename things for real
-        for x, obj in enumerate(objs):
-            try:
-                obj.rename(newNames[x])
-            except RuntimeError:
-                # Restore original name in case of errors
-                obj.rename(oldNames[x])
-                raise
+                obj, name = objPair
+                try:
+                    obj.rename('_' * 80)
+                except RuntimeError:
+                    print 'Failed to rename %s to %s.  Skipping node.' % (obj, name)
+                    skipPairs.add(objPair)
+
+            # Rename things for real
+            for objPair in objPairs:
+                if objPair not in skipPairs:
+                    obj, name = objPair
+                    obj.rename(name)
+
+    except RuntimeError as err:
+        # Undo bad renames and show error
+        pm.undo()
+        raise RenameError('Failed while renaming %s to %s: %s' % (obj, name, err.message))
 
 
 def renameObjects(objs, searchText, replaceText):
     '''
-    Rename the given PyNode's.
+    Rename the given PyNode's
 
     There are two fundamental behaviors to this rename: regex
     substitution, and padded rename.
@@ -141,7 +165,7 @@ def _substituteRename(objs, searchText, replaceText):
     newNames = []
     reComp = re.compile(searchText)
     for obj in objs:
-        name = reComp.sub(replaceText, obj.nodeName())
+        name = reComp.sub(replaceText, obj.nodeName(stripNamespace=True))
         newNames.append(name)
 
     # Rename 'em
@@ -413,7 +437,7 @@ class RenameDialog(QtGui.QDialog):
         self.replaceField.setFocus()
         objs = self.getSelection()
         if objs:
-            self.replaceField.setText(objs[0].nodeName())
+            self.replaceField.setText(objs[0].nodeName(stripNamespace=True))
             self.replaceField.selectAll()
 
     def renameSelection(self):
@@ -437,12 +461,11 @@ class RenameDialog(QtGui.QDialog):
         '''
         Returns a list of selected PyNode objects to rename.
         '''
-        return pm.selected()
-
+        return pm.selected(objectsOnly=True)
 
 def ui():
-    global _globalQtObjects
-    if pm.selected():
+    global _globalQtObject
+    if pm.selected(objectsOnly=True):
         renameDialog = RenameDialog(utils.ui.getMayaWindow())
         for obj in reversed(_globalQtObjects):
             _globalQtObjects.remove(obj)

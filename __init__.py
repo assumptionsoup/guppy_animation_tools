@@ -47,13 +47,50 @@ __all__ = [
     'selectedAttributes',
     'slideAnimationKeys',
     'zeroSelection',
-    'guppyInstaller']
+    'guppyInstaller',
+    'renameIt']
+_logRegister = {}
+_logLevels = {}
+_debugOn = False
 
 
 def getLogger(name):
     if 'guppy_animation_tools' in name:
         name = name.replace('guppy_animation_tools', 'gat', 1)
-    return plogging.getLogger(name)
+    if name not in _logRegister:
+        log = plogging.getLogger(name)
+        log.setLevel(log.INFO)
+        _logRegister[name] = log
+
+    return _logRegister[name]
+
+
+def setLoggerLevels(level, namespaces=None):
+    if namespaces is None:
+        namespaces = _logRegister.keys()
+
+    if _logLevels:
+        namespaces = [n for n in _logLevels.iterkeys() if n not in namespaces]
+
+    for name in namespaces:
+        _logLevels[name] = _logRegister[name].level
+        _logRegister[name].setLevel(level)
+
+
+def restoreLoggerLevels():
+    global _logLevels
+    for name, level in _logLevels.iteritems():
+        _logRegister[name].setLevel(level)
+    _logLevels = {}
+
+
+def toggleDebug():
+    global _debugOn
+    if _debugOn:
+        restoreLoggerLevels()
+    else:
+        setLoggerLevels(plogging.DEBUG)
+    _debugOn = not _debugOn
 
 
 def _addToPath(env, newLocation):
