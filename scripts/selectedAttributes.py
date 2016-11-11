@@ -120,8 +120,8 @@ def useGraphAttributes(detectionType='cursor'):
         useGraphAttributes, panel = isGraphEditorActive()
     elif detectionType.lower() == 'panel':
         # Use the graph editor if it is open.
-        panel = 'graphEditor1'
-        useGraphAttributes = isGraphEditorVisible()
+        panel = findGraphEditorPanel()
+        useGraphAttributes = isGraphEditorVisible(panel) if panel else False
     else:
         raise Exception('%s is not a valid detection type.  Use "cursor" or "panel"' % detectionType)
 
@@ -512,7 +512,7 @@ def isGraphEditorActive():
     mouse.'''
 
     # Find out if the graph editor is under cursor
-    graphEditorActive = 0
+    graphEditorActive = False
     panel = ''
     try:
         panel = cmd.getPanel(underPointer=True)
@@ -521,13 +521,12 @@ def isGraphEditorActive():
         # the user that Maya is a bitch. Yes, I've had this fail here
         # before.  Maya told me underPointer needed to be passed a bool.
         # Well, I hate to tell you Maya, but True is a bool.
-        panel = None
         om.MGlobal.displayWarning("Defaulting to channelBox because Maya doesn't know where your cursor is.")
 
     if panel and cmd.getPanel(typeOf=panel) == 'scriptedPanel':
         # I assume that testing for the type will be more accurate than matching the panel strings
         if cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor':
-            graphEditorActive = 1
+            graphEditorActive = True
 
     # A graph editor panel should always be passed, even if we couldn't find a specific one.
     if not graphEditorActive:
@@ -536,23 +535,44 @@ def isGraphEditorActive():
 
 
 @printCalled
-def isGraphEditorVisible(panel='graphEditor1'):
+def findGraphEditorPanel():
+    """
+    Find the first graph editor panel, if one exists.
+    Returns None if no panel exists
+    """
+    graphPanels = [panel for panel in (cmd.getPanel(type='scriptedPanel') or []) 
+                   if cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor']
+    if graphPanels:
+        # Sort graph panels just to help keep things deterministic if more than one is open.
+        return sorted(graphPanels)[0]
+    else:
+        return None
+
+
+@printCalled
+def isGraphEditorVisible(panel):
     '''Determines if the provided graph editor panel is open by finding the
     associated window. Minimized graph editors are considered closed.'''
 
-    if panel and cmd.getPanel(typeOf=panel) == 'scriptedPanel':
-        # I assume that testing for the type will be more accurate than matching the panel strings
-        if cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor':
-            # Find full path to the panel
-            window = cmd.scriptedPanel(panel, q=1, ctl=1)
-            if window:
-                # If the panel exists, derrive the window name from the full path
-                window = window.split('|')[0]
-                if cmd.window(window, q=1, vis=1) and not cmd.window(window, q=1, i=1):
-                    # If the panel is visible and not minimized.
-                    return True
-            # graphEditor1Window
-            # window -vis -i
+    # If the panel was passed in, there's a chance it was the wrong type.
+    if cmd.getPanel(typeOf=panel) == 'scriptedPanel' and cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor':
+        allWindows = cmd.lsUI(windows=1)
+        panelPath = cmd.scriptedPanel(panel, q=1, ctl=1)
+
+        if panelPath and allWindows:
+            # I can't find any easy api access to the window like panel.getWindow()
+            # So we have to do things the hard way and string match window paths
+            # to the controller paths.
+            matchingWindows = [window for window in allWindows if panelPath.startswith(window)]
+            if matchingWindows:
+                # Take the longest path, just in case there's more than one match.
+                # I don't think there can be, but just in case maya can make nested
+                # windows, lets do this to be safe.
+                window = sorted(matchingWindows)[-1]
+
+            if cmd.window(window, q=1, vis=1) and not cmd.window(window, q=1, i=1):
+                # If the panel is visible and not minimized.
+                return True
     return False
 
 

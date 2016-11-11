@@ -33,12 +33,18 @@ __version__ = '1.96'
 __email__ = 'AssumptionSoup@gmail.com'
 __status__ = 'Beta'
 
+from functools import partial
+import collections
+import textwrap
+
 import maya.cmds as cmd
 import maya.OpenMaya as om
-from functools import partial
-import textwrap
-import collections
+
 import selectedAttributes
+import guppy_animation_tools
+
+
+_log = guppy_animation_tools.getLogger(__name__)
 
 
 def setDefaultOptionVar(name, value):
@@ -791,7 +797,8 @@ def loadKeys(reload=0):
     attrs = []
 
     # Find selected keyframes if graph editor is open.
-    if selectedAttributes.isGraphEditorVisible():
+    graphPanel = selectedAttributes.findGraphEditorPanel()
+    if graphPanel and selectedAttributes.isGraphEditorVisible(graphPanel):
         attrs = cmd.keyframe(q=1, n=1, sl=1)
 
     # If none are selected, get any keys on the current frame that are
