@@ -19,15 +19,21 @@
 '''
 
 import pymel.core as pm
-from PySide import QtCore, QtGui
-import shiboken
+from qt import QtCore, QtGui, QtWidgets
+
+try:
+    import shiboken
+except ImportError:
+    import shiboken2 as shiboken
+
 import maya.OpenMayaUI as omUI
+
 
 
 def toQtWindow(windowName):
     ptr = omUI.MQtUtil.findWindow(windowName)
     if ptr is not None:
-        return shiboken.wrapInstance(long(ptr), QtGui.QWidget)
+        return shiboken.wrapInstance(long(ptr), QtWidgets.QWidget)
 
 
 def getMayaWindow():

@@ -28,10 +28,8 @@ import re
 import platform
 
 import pymel.core as pm
-from PySide import QtCore, QtGui
-
-import guppy_animation_tools
 import guppy_animation_tools.utils as utils
+from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
 
 
 try:
@@ -176,7 +174,7 @@ def _renameWithPadding(objs, name):
     '''
     Renames all the given PyNodes to `name`.
 
-    Unlike a regular rename operation in Maya it will calculate the
+    Unlike a regular rename operation in Maya, this will calculate the
     needed padding to properly pad all the selected names (e.g. node01,
     node02 ... node10).  If the `name` ends in a number, that number
     will be the first number used for the sequence. If that number is
@@ -238,7 +236,7 @@ def padNumber(number, padding):
     return '%%0%dd' % padding % number
 
 
-class RenameDialog(QtGui.QDialog):
+class RenameDialog(QtWidgets.QDialog):
     '''
     A super simplistic dialog for renaming the selected nodes in Maya
     '''
@@ -263,26 +261,26 @@ class RenameDialog(QtGui.QDialog):
         font.setStyleHint(QtGui.QFont.TypeWriter)
 
         # Build layout
-        self.searchText = QtGui.QLabel(self)
+        self.searchText = QtWidgets.QLabel(self)
         self.searchText.setText('Search')
-        self.searchField = QtGui.QLineEdit(self)
+        self.searchField = QtWidgets.QLineEdit(self)
         self.searchField.setFont(font)
         self.searchField.returnPressed.connect(self.renameSelection)
-        self.replaceText = QtGui.QLabel(self)
+        self.replaceText = QtWidgets.QLabel(self)
         self.replaceText.setText('Replace')
-        self.replaceField = QtGui.QLineEdit(self)
+        self.replaceField = QtWidgets.QLineEdit(self)
         self.replaceField.setFont(font)
         self.replaceField.returnPressed.connect(self.renameSelection)
         self.populateReplaceField()
 
-        self.setLayout(QtGui.QHBoxLayout())
+        self.setLayout(QtWidgets.QHBoxLayout())
         self.setMinimumWidth(250)
-        self.textColumn = QtGui.QWidget(self)
-        self.fieldColumn = QtGui.QWidget(self)
+        self.textColumn = QtWidgets.QWidget(self)
+        self.fieldColumn = QtWidgets.QWidget(self)
         self.layout().addWidget(self.textColumn)
         self.layout().addWidget(self.fieldColumn)
-        fieldLayout = QtGui.QVBoxLayout()
-        textLayout = QtGui.QVBoxLayout()
+        fieldLayout = QtWidgets.QVBoxLayout()
+        textLayout = QtWidgets.QVBoxLayout()
         self.textColumn.setLayout(textLayout)
         self.fieldColumn.setLayout(fieldLayout)
         textLayout.setContentsMargins(0, 0, 0, 0)
@@ -309,6 +307,8 @@ class RenameDialog(QtGui.QDialog):
 
         # Transparencies only work with compositing.
         try:
+            # TODO: Not sure where QX11Info went in PySide2 - needs testing on linux.
+            # from guppy_animation_tools.utils.qt import QtX11Extras
             self.useRoundedCorners = QtGui.QX11Info.isCompositingManagerRunning()
         except AttributeError:
             self.useRoundedCorners = platform.system() == 'Windows'
@@ -323,8 +323,8 @@ class RenameDialog(QtGui.QDialog):
         self.replaceField.setFocus()
 
         # Add hotkeys to detect up and down arrows
-        QtGui.QShortcut(QtGui.QKeySequence("Up"), self, self.previousEntry)
-        QtGui.QShortcut(QtGui.QKeySequence("Down"), self, self.nextEntry)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Up"), self, self.previousEntry)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self, self.nextEntry)
 
         self.historyIndexes = {'search': len(_history['search']) - 1,
                                'replace': len(_history['replace']) - 1}
@@ -370,7 +370,7 @@ class RenameDialog(QtGui.QDialog):
                 index = currentIndex - 1
             return index
 
-        focusedWidget = QtGui.qApp.focusWidget()
+        focusedWidget = QtWidgets.QApplication.focusWidget()
         for field, entries in _history.iteritems():
             if focusedWidget is self.historyFields[field]:
                 i = getPreviousIndex(self.historyIndexes[field])
@@ -390,7 +390,7 @@ class RenameDialog(QtGui.QDialog):
                 index = currentIndex + 1
             return index
 
-        focusedWidget = QtGui.qApp.focusWidget()
+        focusedWidget = QtWidgets.QApplication.focusWidget()
         for field, entries in _history.iteritems():
             if focusedWidget is self.historyFields[field]:
                 i = getNextIndex(self.historyIndexes[field], entries)
@@ -423,7 +423,7 @@ class RenameDialog(QtGui.QDialog):
         '''
 
         hasFocus = False
-        focusedWidget = QtGui.qApp.focusWidget()
+        focusedWidget = QtWidgets.QApplication.focusWidget()
         if focusedWidget is not None:
             if self is focusedWidget.window():
                 hasFocus = True
