@@ -82,7 +82,7 @@ def printCalled(fn):
 
 
 @printCalled
-def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True):
+def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, filterCurveByComponent=False):
     '''Get selected attributes using the given detection type.
 
     A detectionType of 'cursor' will find selected attributes in the graph
@@ -102,7 +102,7 @@ def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True):
     # Get selected attributes from the channelBox or graphEditor depending on where the cursor is.
     if useGraph:
         # Pass list by reference
-        attributes = getGraphEditor(panel, useSelectedCurves=useSelectedCurves, animatableOnly=animatableOnly)
+        attributes = getGraphEditor(panel, useSelectedCurves=useSelectedCurves, animatableOnly=animatableOnly, filterCurveByComponent=filterCurveByComponent)
     else:
         attributes = getChannelBox(animatableOnly=animatableOnly)
 
@@ -257,7 +257,7 @@ def filterSelectedToAttributes(selected, attributes, expandObjects, animatableOn
 
 
 @printCalled
-def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=True, animatableOnly=True):
+def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=True, animatableOnly=True, filterCurveByComponent=False):
     '''Get attributes selected in the graph editor.
 
     If expandObjects is true, attributes are saved in the format
@@ -270,7 +270,7 @@ def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=T
     attributes = []
 
     # Get selected
-    selected = getGraphSelection(panel, useSelectedCurves=useSelectedCurves)
+    selected = getGraphSelection(panel, useSelectedCurves=useSelectedCurves, filterCurveByComponent=filterCurveByComponent)
 
     if selected:
         # This is rare, but eliminate underworld paths.
@@ -408,49 +408,63 @@ def getSelectionConnection(panel='graphEditor1'):
 
 
 @printCalled
-def getSelectedCurves():
+def getSelectedCurves(filterCurveByComponent=False):
     '''Returns a list of all curves that are completely selected.'''
     selection = []
 
     # First see if there are any curves selected
     curves = cmd.keyframe(q=1, name=1, sl=1)
     if curves:
-        for curve in curves:
-            # Find out if the entire curve is selected, based on keyframe count.
-            totalKeyframes = cmd.keyframe(curve, q=1, keyframeCount=1)
-            selectedKeyframes = cmd.keyframe(curve, q=1, keyframeCount=1, sl=1)
-            if totalKeyframes == selectedKeyframes:
+        # If [cleverkey is] asking for any curve represented by componenet selection
+        # (tangent, key, or whole curve), pass it through
+        if filterCurveByComponent:
+            for curve in curves:
                 try:
                     # Trace the output of  the curve to find the attribute.
                     attr = getFirstConnection(curve, 'output', outAttr=1, findAttribute=1)
                     selection.append(attr)
-                except RuntimeError:
+                except:
                     pass
-            else:
-                # Short circut the whole loop.  If there's ever any
-                # selection that is NOT an entire curve, then NOTHING is
-                # returned Without this, other functions may operate
-                # only on curves, but ignore other selected keys, which
-                # is not desirable.
-                return []
+            return selection
+        else:
+            # If some other module is looking for curves, follow through without
+            # disturbing the current process
+            for curve in curves:
+                # Find out if the entire curve is selected, based on keyframe count.
+                totalKeyframes = cmd.keyframe(curve, q=1, keyframeCount=1)
+                selectedKeyframes = cmd.keyframe(curve, q=1, keyframeCount=1, sl=1)
+                if totalKeyframes == selectedKeyframes:
+                    try:
+                        # Trace the output of  the curve to find the attribute.
+                        attr = getFirstConnection(curve, 'output', outAttr=1, findAttribute=1)
+                        selection.append(attr)
+                    except RuntimeError:
+                        pass
+                else:
+                    # Short circut the whole loop.  If there's ever any
+                    # selection that is NOT an entire curve, then NOTHING is
+                    # returned Without this, other functions may operate
+                    # only on curves, but ignore other selected keys, which
+                    # is not desirable.
+                    return []
     return selection
 
 
 @printCalled
-def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True):
+def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, filterCurveByComponent=False):
     '''Returns true if selected curves took precedence while obtaining
     attributes'''
 
     if useSelectedCurves:
         useGraph, panel = useGraphAttributes(detectionType=detectionType)
         if useGraph:
-            if getSelectedCurves():
+            if getSelectedCurves(filterCurveByComponent=filterCurveByComponent):
                 return True
     return False
 
 
 @printCalled
-def getGraphSelection(panel='graphEditor1', useSelectedCurves=True):
+def getGraphSelection(panel='graphEditor1', useSelectedCurves=True, filterCurveByComponent=False):
     '''A robust method of finding the selected objects/attributes in the graph
     editor. If nothing is selected, all objects in the graph outliner will be
     returned.  If a one or more curves are selected, those curves take
@@ -460,7 +474,7 @@ def getGraphSelection(panel='graphEditor1', useSelectedCurves=True):
 
     # First see if there are any curves selected
     if useSelectedCurves:
-        selection = getSelectedCurves()
+        selection = getSelectedCurves(filterCurveByComponent=filterCurveByComponent)
 
         if selection:
             return selection
