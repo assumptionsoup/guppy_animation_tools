@@ -41,10 +41,10 @@ import maya.cmds as cmd
 import maya.OpenMaya as om
 
 import selectedAttributes
-import guppy_animation_tools
+import guppy_animation_tools as gat
 
 
-_log = guppy_animation_tools.getLogger(__name__)
+_log = gat.getLogger(__name__)
 
 
 def setDefaultOptionVar(name, value):

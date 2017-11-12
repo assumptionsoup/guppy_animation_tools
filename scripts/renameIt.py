@@ -28,7 +28,7 @@ import re
 import platform
 
 import pymel.core as pm
-import guppy_animation_tools.utils as utils
+import guppy_animation_tools as gat
 from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
 
 
@@ -39,7 +39,8 @@ except NameError:
     _globalQtObjects = []
     _history = {'search': [], 'replace': []}
 
-_log = guppy_animation_tools.getLogger(__name__)
+_log = gat.getLogger(__name__)
+
 
 # TODO:
 #      - Add option to enable/disable smart-padding
@@ -79,7 +80,7 @@ def safeRename(objs, newNames):
                 'Cannot rename "%s" to "%s"' % (obj.nodeName(), name))
 
     try:
-        with utils.UndoChunk():
+        with gat.utils.UndoChunk():
             # Rename objects to something that I hope doesn't already exist,
             # so that we don't run into issues trying to rename an object in
             # our list to the name of an object that hasn't yet been
@@ -308,7 +309,7 @@ class RenameDialog(QtWidgets.QDialog):
         # Transparencies only work with compositing.
         try:
             # TODO: Not sure where QX11Info went in PySide2 - needs testing on linux.
-            # from guppy_animation_tools.utils.qt import QtX11Extras
+            # from guppy_animation_tools.gat.utils.qt import QtX11Extras
             self.useRoundedCorners = QtGui.QX11Info.isCompositingManagerRunning()
         except AttributeError:
             self.useRoundedCorners = platform.system() == 'Windows'
@@ -466,7 +467,7 @@ class RenameDialog(QtWidgets.QDialog):
 def ui():
     global _globalQtObject
     if pm.selected(objectsOnly=True):
-        renameDialog = RenameDialog(utils.ui.getMayaWindow())
+        renameDialog = RenameDialog(gat.utils.ui.getMayaWindow())
         for obj in reversed(_globalQtObjects):
             _globalQtObjects.remove(obj)
             obj.close()
