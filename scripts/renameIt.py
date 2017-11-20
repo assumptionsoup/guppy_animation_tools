@@ -306,12 +306,11 @@ class RenameDialog(QtWidgets.QDialog):
         checkFocusEvents(self.searchField)
         checkFocusEvents(self.replaceField)
 
-        # Transparencies only work with compositing.
+        # Transparencies only work with compositing on Linux.
         try:
-            # TODO: Not sure where QX11Info went in PySide2 - needs testing on linux.
-            # from guppy_animation_tools.gat.utils.qt import QtX11Extras
-            self.useRoundedCorners = QtGui.QX11Info.isCompositingManagerRunning()
-        except AttributeError:
+            from guppy_animation_tools.utils.qt import QtX11Extras
+            self.useRoundedCorners = QtX11Extras.QX11Info.isCompositingManagerRunning()
+        except ImportError:
             self.useRoundedCorners = platform.system() == 'Windows'
 
         if self.useRoundedCorners:
