@@ -29,7 +29,8 @@ __all__ = ['ui']
 
 class UndoChunk(object):
     '''
-    Context manager to group all following commands into a single undo "chunk".
+    Context manager to group all following commands into a single undo
+    "chunk".
     '''
     def __enter__(self):
         try:
@@ -37,6 +38,7 @@ class UndoChunk(object):
         except TypeError:
             # Legacy support for before undo chunking existed
             pm.undoInfo(stateWithoutFlush=0)  # turn undo off
+        return self
 
     def __exit__(self, type, value, tb):
         try:
@@ -47,3 +49,22 @@ class UndoChunk(object):
             pm.undoInfo(stateWithoutFlush=1)
             # This is needed for things to work for some reason
             pm.undoInfo(query=1, undoName=0)
+
+
+class MaintainSelection(object):
+    '''
+    Context manager that maintains / restores selection once the context
+    exits.
+    '''
+    def __init__(self):
+        self.selection = []
+
+    def __enter__(self):
+        self.selection = pm.ls(selection=1)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        # Avoid node.exists() due to bug in pymel fixed AFTER 1.0.10rc2
+        # https://github.com/LumaPictures/pymel/commit/5c141874ade4fee5fb892507d47f2ed5dbddeb33
+        selection = [node for node in self.selection if pm.objExists(node)]
+        pm.select(selection)
