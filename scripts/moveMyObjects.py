@@ -180,6 +180,27 @@ class MoveMyObjects(object):
         self.numSelected = 0
         self._callbacks = {}
         self._cbid = None
+        self._callbacksEnabled = True
+
+        class DisableCallbacks(object):
+            '''
+            Closure based Context Manager to temporarily disable callbacks.
+
+            This is mostly used to prevent extra selectionChanged callbacks
+            from being triggered during save/applyPosition calls.
+            '''
+            def __init__(this):
+                this._callbackState = True
+
+            def __enter__(this):
+                this._callbackState = self._callbacksEnabled
+                self._callbacksEnabled = False
+
+            def __exit__(this, exc_type, exc_value, traceback):
+                self._callbacksEnabled = this._callbackState
+
+        self.DisableCallbacks = DisableCallbacks
+
 
     def addCallback(self, cbName, cb):
         '''
@@ -230,6 +251,9 @@ class MoveMyObjects(object):
             self._stopMonitoringSelection()
 
     def _callCallbacks(self, cbName):
+        if not self._callbacksEnabled:
+            return
+
         for cb in self._callbacks.get(cbName, []):
             _log.debug("Calling callback, %s for %s channel", cb, cbName)
             cb()
@@ -259,7 +283,8 @@ class MoveMyObjects(object):
         # Save the position of the selected objects
         sel = pm.ls(sl=1)
         if sel:
-            self.positions = getNodePositions(sel)
+            with self.DisableCallbacks():
+                self.positions = getNodePositions(sel)
             # I like letting the user know something happened
             _log.info('Position saved')
             self._callCallbacks('savePosition')
@@ -272,7 +297,8 @@ class MoveMyObjects(object):
         if self.positions:
             _log.debug("Applying positions: %r", self.positions)
             if sel:
-                applyNodePositions(self.positions, sel)
+                with self.DisableCallbacks():
+                    applyNodePositions(self.positions, sel)
                 _log.info('Position applied')
                 self._callCallbacks('applyPosition')
             else:
