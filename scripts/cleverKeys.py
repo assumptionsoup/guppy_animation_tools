@@ -266,7 +266,7 @@ def syncGraphEditor(graphInfo=None):
         cmd.selectionConnection(selectionConnection, edit=True, select=attr)
 
 
-def syncChannelBox(graphInfo=None):
+def syncChannelBox(graphInfo=None, perfectSync=False):
     '''
     Syncs the attributes selected in the graphEditor to those in the
     channelBox.
@@ -281,42 +281,57 @@ def syncChannelBox(graphInfo=None):
         return
 
     # Get selected nodes and attributes
-    attributes = selectedAttributes.getGraphEditor(graphInfo, expandObjects=False)
+    selected = selectedAttributes.getGraphEditor(graphInfo, expandObjects=False)
     nodes = cmd.ls(sl=1, l=1)
-
-    # Clear graph editor attributes
-    selectionConnection = selectedAttributes.selectionConnectionFromPanel(
-        graphInfo.panelName)
-    cmd.selectionConnection(selectionConnection, edit=True, clr=True)
 
     # Process attributes
     # Get the attribute part of node.attribute and separate out
     # selected objects.
     objs = []
-    for x in reversed(range(len(attributes))):
-        if '.' in attributes[x]:
+    attributes = set()
+    for nodeOrAttr in selected:
+        if '.' in nodeOrAttr:
             # This works for compound attributes too.  Trust me.
-            null, attributes[x] = selectedAttributes.splitAttr(attributes[x])
+            attributes.add(selectedAttributes.splitAttr(nodeOrAttr)[1])
         else:
-            objs.append(attributes.pop(x))
-    attributes = list(set(attributes))
+            objs.append(nodeOrAttr)
+    attributes = list(attributes)
 
-    # Select the attributes on every node selected
-    for attr in attributes:
-        for node in nodes:
-            try:
-                cmd.selectionConnection(selectionConnection, edit=True,
-                                        select='%s.%s' % (node, attr))
-            except RuntimeError:
-                # That attribute probably didn't exist on that node.
-                pass
+    objAttrs = ["%s.%s" % (node, attr) for attr in attributes for node in nodes]
+    try:
+        # I hear that the select flag was added in Maya 2016 Extension 2
+        pm.channelBox(
+            pm.melGlobals['gChannelBoxName'], select=objAttrs, edit=True)
+    except TypeError:
+        # Legacy behavior before channelBox -select flag was created
+        # Does not actually sync with channel box, because that was impossible.
+        # instead it just selected the same attributes on all graph nodes.
+        if perfectSync:
+            # Clear graph editor attributes
+            selectionConnection = selectedAttributes.selectionConnectionFromPanel(
+                graphInfo.panelName)
+            cmd.selectionConnection(selectionConnection, edit=True, clr=True)
 
-    # reselect objects
-    for obj in objs:
-        cmd.selectionConnection(selectionConnection, edit=True, select=obj)
+            # Select the attributes on every node selected
+            for attr in attributes:
+                for node in nodes:
+
+                    try:
+                        cmd.selectionConnection(selectionConnection, edit=True,
+                                                select='%s.%s' % (node, attr))
+                    except RuntimeError:
+                        # That attribute probably didn't exist on that node.
+                        pass
+
+            # reselect objects
+            for obj in objs:
+                cmd.selectionConnection(selectionConnection, edit=True, select=obj)
+    else:
+        if perfectSync:
+            syncGraphEditor(graphInfo=graphInfo)
 
 
-def selectSimilarAttributes(detectCursor=True):
+def selectSimilarAttributes(detectCursor=True, perfectSync=False):
     '''
     Selects the same attributes already selected on every node in the Graph
     Editor.
@@ -326,16 +341,19 @@ def selectSimilarAttributes(detectCursor=True):
     the ChannelBox is synced to the Graph Editor.
     When detectCursor is False, your channel box is always synced to the Graph
     Editor.
+
+    When perfectSync is True and the graph editor is syncing to the channel box,
+    the graph editor selection will change as well so that it is a valid
+    channel box selection (every attribute is selected on every node).
     '''
 
     # Where is the cursor?
-    graphInfo = selectedAttributes.GraphEditorInfo.detect(
-        restrictToCursor=detectCursor)
+    graphInfo = selectedAttributes.GraphEditorInfo.detect(restrictToCursor=detectCursor)
 
     # Select similar attributes.
     if graphInfo.isValid():
         # Sync graph editor selection to channel box.
-        syncChannelBox(graphInfo=graphInfo)
+        syncChannelBox(graphInfo=graphInfo, perfectSync=perfectSync)
     else:
         syncGraphEditor()
 
