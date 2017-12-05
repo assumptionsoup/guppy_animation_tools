@@ -82,7 +82,7 @@ def printCalled(fn):
 
 
 @printCalled
-def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True):
+def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=False):
     '''Get selected attributes using the given detection type.
 
     A detectionType of 'cursor' will find selected attributes in the graph
@@ -102,7 +102,7 @@ def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True):
     # Get selected attributes from the channelBox or graphEditor depending on where the cursor is.
     if useGraph:
         # Pass list by reference
-        attributes = getGraphEditor(panel, useSelectedCurves=useSelectedCurves, animatableOnly=animatableOnly)
+        attributes = getGraphEditor(panel, useSelectedCurves=useSelectedCurves, animatableOnly=animatableOnly, usePartialCurveSelection=usePartialCurveSelection)
     else:
         attributes = getChannelBox(animatableOnly=animatableOnly)
 
@@ -120,8 +120,8 @@ def useGraphAttributes(detectionType='cursor'):
         useGraphAttributes, panel = isGraphEditorActive()
     elif detectionType.lower() == 'panel':
         # Use the graph editor if it is open.
-        panel = 'graphEditor1'
-        useGraphAttributes = isGraphEditorVisible()
+        panel = findGraphEditorPanel()
+        useGraphAttributes = isGraphEditorVisible(panel) if panel else False
     else:
         raise Exception('%s is not a valid detection type.  Use "cursor" or "panel"' % detectionType)
 
@@ -257,7 +257,7 @@ def filterSelectedToAttributes(selected, attributes, expandObjects, animatableOn
 
 
 @printCalled
-def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=True, animatableOnly=True):
+def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=False):
     '''Get attributes selected in the graph editor.
 
     If expandObjects is true, attributes are saved in the format
@@ -270,7 +270,7 @@ def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=T
     attributes = []
 
     # Get selected
-    selected = getGraphSelection(panel, useSelectedCurves=useSelectedCurves)
+    selected = getGraphSelection(panel, useSelectedCurves=useSelectedCurves, usePartialCurveSelection=usePartialCurveSelection)
 
     if selected:
         # This is rare, but eliminate underworld paths.
@@ -408,49 +408,57 @@ def getSelectionConnection(panel='graphEditor1'):
 
 
 @printCalled
-def getSelectedCurves():
-    '''Returns a list of all curves that are completely selected.'''
+def getSelectedCurves(usePartialCurveSelection=False):
+    '''
+    Returns a list of all curves that are completely selected.
+
+    usePartialCurveSelection: Curves are returned if any part of a curve
+    is selected (tangent, key, or whole curve)
+    '''
     selection = []
 
     # First see if there are any curves selected
-    curves = cmd.keyframe(q=1, name=1, sl=1)
-    if curves:
-        for curve in curves:
-            # Find out if the entire curve is selected, based on keyframe count.
-            totalKeyframes = cmd.keyframe(curve, q=1, keyframeCount=1)
-            selectedKeyframes = cmd.keyframe(curve, q=1, keyframeCount=1, sl=1)
-            if totalKeyframes == selectedKeyframes:
-                try:
-                    # Trace the output of  the curve to find the attribute.
-                    attr = getFirstConnection(curve, 'output', outAttr=1, findAttribute=1)
-                    selection.append(attr)
-                except RuntimeError:
-                    pass
-            else:
-                # Short circut the whole loop.  If there's ever any
-                # selection that is NOT an entire curve, then NOTHING is
-                # returned Without this, other functions may operate
-                # only on curves, but ignore other selected keys, which
-                # is not desirable.
-                return []
+    curves = cmd.keyframe(q=1, name=1, sl=1) or []
+
+    def isEntireCurveSelected(curve):
+        # Find out if the entire curve is selected, based on keyframe count.
+        totalKeyframes = cmd.keyframe(curve, q=1, keyframeCount=1)
+        selectedKeyframes = cmd.keyframe(curve, q=1, keyframeCount=1, sl=1)
+        return totalKeyframes == selectedKeyframes
+
+    for curve in curves:
+        if usePartialCurveSelection or isEntireCurveSelected(curve):
+            try:
+                # Trace the output of  the curve to find the attribute.
+                attr = getFirstConnection(curve, 'output', outAttr=1, findAttribute=1)
+                selection.append(attr)
+            except RuntimeError:
+                pass
+        else:
+            # Short circuit the whole loop.  If there's ever any
+            # selection that is NOT an entire curve, then NOTHING is
+            # returned.  Without this, other functions may operate
+            # only on curves, but ignore other selected keys, which
+            # is not desirable when usePartialCurveSelection is false.
+            return []
     return selection
 
 
 @printCalled
-def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True):
+def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, usePartialCurveSelection=False):
     '''Returns true if selected curves took precedence while obtaining
     attributes'''
 
     if useSelectedCurves:
         useGraph, panel = useGraphAttributes(detectionType=detectionType)
         if useGraph:
-            if getSelectedCurves():
+            if getSelectedCurves(usePartialCurveSelection=usePartialCurveSelection):
                 return True
     return False
 
 
 @printCalled
-def getGraphSelection(panel='graphEditor1', useSelectedCurves=True):
+def getGraphSelection(panel='graphEditor1', useSelectedCurves=True, usePartialCurveSelection=False):
     '''A robust method of finding the selected objects/attributes in the graph
     editor. If nothing is selected, all objects in the graph outliner will be
     returned.  If a one or more curves are selected, those curves take
@@ -459,20 +467,18 @@ def getGraphSelection(panel='graphEditor1', useSelectedCurves=True):
     Always returns a list.'''
 
     # First see if there are any curves selected
+    selection = []
     if useSelectedCurves:
-        selection = getSelectedCurves()
+        selection = getSelectedCurves(usePartialCurveSelection=usePartialCurveSelection)
 
         if selection:
             return selection
-
-    else:
-        selection = []
 
     # Get the graph outliner ui name.
     outliner = getEditorFromPanel(panel, cmd.outlinerEditor)
 
     if outliner is not None:
-        # Find selected attributes
+        # Find attributes selected in the graph editor's outliner
         sc = cmd.outlinerEditor(outliner, q=1, selectionConnection=1)
         selection = cmd.selectionConnection(sc, q=1, object=1)
 
@@ -512,7 +518,7 @@ def isGraphEditorActive():
     mouse.'''
 
     # Find out if the graph editor is under cursor
-    graphEditorActive = 0
+    graphEditorActive = False
     panel = ''
     try:
         panel = cmd.getPanel(underPointer=True)
@@ -521,13 +527,12 @@ def isGraphEditorActive():
         # the user that Maya is a bitch. Yes, I've had this fail here
         # before.  Maya told me underPointer needed to be passed a bool.
         # Well, I hate to tell you Maya, but True is a bool.
-        panel = None
         om.MGlobal.displayWarning("Defaulting to channelBox because Maya doesn't know where your cursor is.")
 
     if panel and cmd.getPanel(typeOf=panel) == 'scriptedPanel':
         # I assume that testing for the type will be more accurate than matching the panel strings
         if cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor':
-            graphEditorActive = 1
+            graphEditorActive = True
 
     # A graph editor panel should always be passed, even if we couldn't find a specific one.
     if not graphEditorActive:
@@ -536,23 +541,44 @@ def isGraphEditorActive():
 
 
 @printCalled
-def isGraphEditorVisible(panel='graphEditor1'):
+def findGraphEditorPanel():
+    """
+    Find the first graph editor panel, if one exists.
+    Returns None if no panel exists
+    """
+    graphPanels = [panel for panel in (cmd.getPanel(type='scriptedPanel') or [])
+                   if cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor']
+    if graphPanels:
+        # Sort graph panels just to help keep things deterministic if more than one is open.
+        return sorted(graphPanels)[0]
+    else:
+        return None
+
+
+@printCalled
+def isGraphEditorVisible(panel):
     '''Determines if the provided graph editor panel is open by finding the
     associated window. Minimized graph editors are considered closed.'''
 
-    if panel and cmd.getPanel(typeOf=panel) == 'scriptedPanel':
-        # I assume that testing for the type will be more accurate than matching the panel strings
-        if cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor':
-            # Find full path to the panel
-            window = cmd.scriptedPanel(panel, q=1, ctl=1)
-            if window:
-                # If the panel exists, derrive the window name from the full path
-                window = window.split('|')[0]
-                if cmd.window(window, q=1, vis=1) and not cmd.window(window, q=1, i=1):
-                    # If the panel is visible and not minimized.
-                    return True
-            # graphEditor1Window
-            # window -vis -i
+    # If the panel was passed in, there's a chance it was the wrong type.
+    if cmd.getPanel(typeOf=panel) == 'scriptedPanel' and cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor':
+        allWindows = cmd.lsUI(windows=1)
+        panelPath = cmd.scriptedPanel(panel, q=1, ctl=1)
+
+        if panelPath and allWindows:
+            # I can't find any easy api access to the window like panel.getWindow()
+            # So we have to do things the hard way and string match window paths
+            # to the controller paths.
+            matchingWindows = [window for window in allWindows if panelPath.startswith(window)]
+            if matchingWindows:
+                # Take the longest path, just in case there's more than one match.
+                # I don't think there can be, but just in case maya can make nested
+                # windows, lets do this to be safe.
+                window = sorted(matchingWindows)[-1]
+
+            if cmd.window(window, q=1, vis=1) and not cmd.window(window, q=1, i=1):
+                # If the panel is visible and not minimized.
+                return True
     return False
 
 

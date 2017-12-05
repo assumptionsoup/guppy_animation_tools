@@ -229,6 +229,12 @@ attributes.  To disable this, you can use the option:
 
     python("cleverKeys.setKey(useSelectedCurves = False)");
 
+If you would like Clever Keys limit keys when curves are selected, but
+want this behavior whenever you select any part of a curve (keyframe,
+tangent or the entire curve), you can enable this:
+
+    python("cleverKeys.setKey(usePartialCurveSelection = True)");
+
 In Maya 2011 and later it is very easy to clear a channel selection.
 You just have to click away from the channel.  Before 2010 things were
 a little trickier.  To help with this, I've added the clear command,

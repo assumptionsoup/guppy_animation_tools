@@ -52,18 +52,39 @@ def toggleDebug():
     selectedAttributes.toggleDebug()
 
 
-def setKey(insert=True, useSelectedCurves=True):
+def setKey(insert=True, useSelectedCurves=True, usePartialCurveSelection=False):
     '''Sets clever keys.  Hohoho.
 
-    If the mouse is over the graph editor, it keys the attributes selected
-    there.  Otherwise it keys the attributes selected in the channel box. If
-    the channelBox is closed it will key all the attributes on the selected
-    node.  It attempts to use the "Insert Key" function which makes keys match
-    the curvature of the surrounding keys whenever possible.  Set insert
-    parameter to false to disable this behavior.'''
+    If the mouse is over the graph editor, it keys the attributes
+    selected there.  Otherwise it keys the attributes selected in the
+    channel box. If the channelBox is closed it will key all the
+    attributes on the selected node.  By default this uses the "Insert
+    Key" behavior of Maya which makes keys match the curvature of the
+    surrounding keys whenever possible.  Set insert parameter to false
+    to disable this behavior.
+
+
+    Parameters
+    ----------
+    insert : bool
+        If true, uses the "insert key" behavior of Maya when creating keys.
+        In this mode, key tangents will match any existing curves leaving
+        them undisturbed.
+    useSelectedCurves : bool
+        If true, when an entire animation curve is selected in the graph
+        editor (by clicking on the curve, not a key or tangent, or
+        selecting every keyframe on the curve), then a key will only be
+        inserted on the curves, other visible curves will be left alone.
+    usePartialCurveSelection : bool
+        This modifies the behavior of useSelectedCurves, and only
+        affects behavior when that parameter is true as well. When true,
+        this changes useSelectedCurves, so that selecting any part of a
+        curve will limit keys to that curve (you do not need to select
+        the entire curve).  Unselected curves will be left alone.
+    '''
 
     # Get Attributes
-    attributes = selectedAttributes.get(detectionType='cursor', useSelectedCurves=useSelectedCurves)
+    attributes = selectedAttributes.get(detectionType='cursor', useSelectedCurves=useSelectedCurves, usePartialCurveSelection=usePartialCurveSelection)
     currentFrame = cmd.currentTime(q=1)
 
     # Make extra sure attributes are unique (they should already be)
