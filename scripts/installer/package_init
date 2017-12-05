@@ -1,0 +1,31 @@
+import os
+import json
+from importlib import import_module
+
+### Load guppy_animation_tools from a subdirectory.
+#   this makes it safer to update guppy_animation_tools *while*
+#   it is running (you just point the next import to a new directory,
+#   rather than trying to modify/add/delete files that could be open).
+
+# Find what subdir we have downloaded guppy_animation_tools into
+with open('package_settings', 'r') as fs:
+    package = json.loads(fs.read())["package_directory"]
+
+# Add that package as a submodule
+REPO_DIR = os.path.dirname(os.path.realpath(__file__))
+_SCRIPTS_DIR = os.path.join(REPO_DIR, package)
+__path__.append(_SCRIPTS_DIR)
+
+# Add guppy_animation_tool's submodules (python doesn't look at the
+# __path__ variables recursively, it only picks up the top level one)
+gat = import_module("guppy_animation_tools.%s" % package)
+__path__.extend(gat.__path__)
+
+# Copy __all__ from package
+try:
+    __all__ = gat.__all__
+except AttributeError:
+    pass
+
+del gat
+del package

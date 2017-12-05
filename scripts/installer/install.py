@@ -72,6 +72,7 @@ __status__ = 'Alpha'
 # ----
 
 
+import json
 import os
 import subprocess
 import threading
@@ -197,6 +198,33 @@ def dynamicInstall():
     cmds.showWindow(window)
 
 
+class Settings(object):
+    def __init__(self):
+        self.data = {
+            'package_directory': None,
+            'subscription_channel': 'master',
+            'current_version': '',
+            'current_commit': ''
+        }
+        self.load()
+
+    def save(self):
+        if REPO_DIR:
+            with open(os.path.join(REPO_DIR, 'package_settings'), 'w') as fs:
+                fs.write(json.dumps(self.data))
+
+    def load(self):
+        if REPO_DIR:
+            try:
+                with open(os.path.join(REPO_DIR, 'package_settings'), 'r') as fs:
+                    self.data.update(json.loads(fs.read()))
+            except EnvironmentError:
+                pass
+
+
+_settings = Settings()
+
+
 def _dynamicInstall(installDir, checkForUpdates=True):
     '''
     Fully install Guppy Animation Tools assuming only this module has
@@ -206,8 +234,11 @@ def _dynamicInstall(installDir, checkForUpdates=True):
     REPO_DIR = installDir
     if not os.path.exists(REPO_DIR):
         os.makedirs(REPO_DIR)
+    settings = Settings()
+    settings.save()
 
     update(force=True, blocking=True)
+    _prepRepo()
     scriptsDir = os.path.dirname(REPO_DIR)
     userSetupPath = os.path.join(scriptsDir, 'userSetup.mel')
     pythonToEval = ['import guppy_animation_tools.guppyInstaller as guppyInstaller']
@@ -217,6 +248,11 @@ def _dynamicInstall(installDir, checkForUpdates=True):
 
     with open(userSetupPath, 'a') as userSetup:
         userSetup.write('\npython(%s);\n' % doubleStringRepr(pythonToEval))
+
+    packageInitPath = os.path.join(REPO_DIR, settings['package_directory'], 'scripts', 'installer', 'package_init')
+    with open(packageInitPath, 'r') as sourceFile:
+        with open(os.path.join(REPO_DIR, '__init__.py')) as initFile:
+            initFile.write(sourceFile.read())
 
     print 'Guppy Animation Tools has been installed successfully.'
 
