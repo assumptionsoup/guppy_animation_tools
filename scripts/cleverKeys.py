@@ -41,11 +41,22 @@ __version__ = '1.08'
 __email__ = 'AssumptionSoup@gmail.com'
 __status__ = 'Production'
 
+import collections
+
 import maya.cmds as cmd
 import maya.mel as mel
+import pymel.core as pm
 import maya.OpenMaya as om
-import collections
-import selectedAttributes
+
+import guppy_animation_tools as gat
+from guppy_animation_tools import selectedAttributes
+
+
+_log = gat.getLogger(__name__)
+
+
+class KeyframeQueryFailed(Exception):
+    pass
 
 
 def toggleDebug():
@@ -100,8 +111,12 @@ def setKey(insert=True, useSelectedCurves=True, usePartialCurveSelection=False):
         # Test if we can use insert
         # canInsert returns 2 if something errored out in it.
         insertAttr = insert
-        canInsert = canInsertKey(attr)
-        if canInsert != 2:
+        try:
+            canInsert = canInsertKey(attr)
+        except KeyframeQueryFailed as err:
+            # Don't even try to key the attribute if we couldn't query it.
+            _log.debug("KeyframeQueryFailed: %s", err)
+        else:
             if not (insert and canInsert):
                 insertAttr = False
 
@@ -146,17 +161,20 @@ def selectNewKeyframe(attr):
 
 
 def canInsertKey(attr):
-    '''Return if a given attribute can be keyframed with the insert keyframe
-    command option. Returns the value 2 if something errored out inside.
-    Otherwise, it will return 0 or 1.'''
+    '''
+    Returns True if a given attribute can be keyframed with the insert keyframe
+    command option.
+
+    Raises KeyframeQueryFailed
+    '''
     # Insert keys match the curvature of the existing curve.
     # They have a few limitations though...
-    # You can't insert a keyframe if there are no keyframes to begin with
     try:
+        # You can't insert a keyframe if there are no keyframes to begin with
         if cmd.keyframe(attr, query=1, keyframeCount=1) == 0:
-            return 0
-    except RuntimeError:
-        return 2
+            return False
+    except RuntimeError as err:
+        raise KeyframeQueryFailed(err)
 
     # You don't want to insert a keyframe if the user changed something.
     # Keyframe always returns a list
@@ -168,33 +186,36 @@ def canInsertKey(attr):
     if not isinstance(newValue, collections.Iterable) and len(oldValue) == 1:
         # There's only one attribute.
         if round(oldValue[0], 6) != round(newValue, 6):
-            return 0
+            return False
     elif len(oldValue) == len(newValue[0]):
         # Attribute is an array, check each one.
         if any(round(oldValue[x], 6) != round(newValue[0][x], 6) for x in range(len(oldValue))):
-            return 0
+            return False
     else:
         # I don't know what this is.
-        return 0
-    return 1
+        return False
+    return True
 
 
-def clearAttributes(graphEditor=None, channelBox=None):
+def clearAttributes(graphEditor=False, channelBox=False):
     '''Clears any attributes selected in the graphEditor and/or channelBox.
 
     If nothing is passed it will clear the graphEditor if it is under the
     cursor, otherwise it will clear the channelBox. If graphEditor and/or
     channelBox is specified it will clear those no matter where the cursor
     is.'''
-    if graphEditor is None and channelBox is None:
-        graphEditorActive, panel = selectedAttributes.isGraphEditorActive()
-        if graphEditorActive:
-            clearGraphEditor(panel)
+    if not graphEditor and not channelBox:
+        graphInfo = selectedAttributes.GraphEditorInfo.detect(restrictToCursor=True)
+
+        if graphInfo.isValid():
+            clearGraphEditor(graphInfo.panelName)
         else:
             clearChannelBox()
     else:
         if graphEditor:
-            clearGraphEditor('graphEditor1')
+            graphInfo = selectedAttributes.GraphEditorInfo.detect()
+            if graphInfo.isValid():
+                clearGraphEditor(graphInfo.panelName)
         if channelBox:
             clearChannelBox()
 
@@ -218,20 +239,26 @@ def clearGraphEditor(panel):
     '''Deselects the attributes of the specified graphEditor panel by clearing
     the selectionConnection.'''
 
-    selectionConnection = selectedAttributes.getSelectionConnection(panel)
+    selectionConnection = selectedAttributes.selectionConnectionFromPanel(panel)
+
     cmd.selectionConnection(selectionConnection, e=1, clr=1)
 
 
-def syncGraphEditor():
-    '''Syncs the attributes selected in the channelBox to those in the
-    graphEditor. I don't know of any way to select channelBox attributes, so I
-    have not been able to implement the equivalent syncChannelBox.'''
+def syncGraphEditor(graphInfo=None):
+    '''
+    Syncs the attributes selected in the channelBox to those in the
+    graphEditor.
+    '''
+    graphInfo = graphInfo or selectedAttributes.GraphEditorInfo.detect()
+    if not graphInfo.isValid():
+        return
 
     # Get channelbox attributes
     attributes = selectedAttributes.getChannelBox(expandObjects=False)
 
     # Clear graph editor attributes
-    selectionConnection = selectedAttributes.getSelectionConnection()
+    selectionConnection = selectedAttributes.selectionConnectionFromPanel(
+        graphInfo.panelName)
     cmd.selectionConnection(selectionConnection, e=1, clr=1)
 
     # Select channelbox attributes in graph editor
@@ -239,53 +266,76 @@ def syncGraphEditor():
         cmd.selectionConnection(selectionConnection, edit=True, select=attr)
 
 
+def syncChannelBox(graphInfo=None):
+    '''
+    Syncs the attributes selected in the graphEditor to those in the
+    channelBox.
+
+    Attributes selected in the graphEditor will be modified
+    to so that every node has the same attributes selected - this
+    "trues" up the channelbox selection with the graph editor.
+    '''
+
+    graphInfo = graphInfo or selectedAttributes.GraphEditorInfo.detect()
+    if not graphInfo.isValid():
+        return
+
+    # Get selected nodes and attributes
+    attributes = selectedAttributes.getGraphEditor(graphInfo, expandObjects=False)
+    nodes = cmd.ls(sl=1, l=1)
+
+    # Clear graph editor attributes
+    selectionConnection = selectedAttributes.selectionConnectionFromPanel(
+        graphInfo.panelName)
+    cmd.selectionConnection(selectionConnection, edit=True, clr=True)
+
+    # Process attributes
+    # Get the attribute part of node.attribute and separate out
+    # selected objects.
+    objs = []
+    for x in reversed(range(len(attributes))):
+        if '.' in attributes[x]:
+            # This works for compound attributes too.  Trust me.
+            null, attributes[x] = selectedAttributes.splitAttr(attributes[x])
+        else:
+            objs.append(attributes.pop(x))
+    attributes = list(set(attributes))
+
+    # Select the attributes on every node selected
+    for attr in attributes:
+        for node in nodes:
+            try:
+                cmd.selectionConnection(selectionConnection, edit=True,
+                                        select='%s.%s' % (node, attr))
+            except RuntimeError:
+                # That attribute probably didn't exist on that node.
+                pass
+
+    # reselect objects
+    for obj in objs:
+        cmd.selectionConnection(selectionConnection, edit=True, select=obj)
+
+
 def selectSimilarAttributes(detectCursor=True):
-    '''Selects the same attributes already selected on every node in the Graph
+    '''
+    Selects the same attributes already selected on every node in the Graph
     Editor.
 
-    When detectCursor is true, if your cursor is not over the Graph Editor, the
-    Channel Box attributes are synced to the Graph Editor using the method
-    syncGraphEditor().
+    When detectCursor is True, if your cursor is over the Graph
+    Editor, the Graph Editor selection is synced to the ChannelBox, otherwise
+    the ChannelBox is synced to the Graph Editor.
+    When detectCursor is False, your channel box is always synced to the Graph
+    Editor.
     '''
 
     # Where is the cursor?
-    useGraphEditor, panel = selectedAttributes.isGraphEditorActive()
+    graphInfo = selectedAttributes.GraphEditorInfo.detect(
+        restrictToCursor=detectCursor)
 
     # Select similar attributes.
-    if useGraphEditor or not detectCursor:
-        # Get selected nodes and attributes
-        attributes = selectedAttributes.getGraphEditor(panel, expandObjects=False)
-        nodes = cmd.ls(sl=1, l=1)
-
-        # Clear graph editor attributes
-        selectionConnection = selectedAttributes.getSelectionConnection(panel)
-        cmd.selectionConnection(selectionConnection, e=1, clr=1)
-
-        # Process attributes
-        # Get the attribute part of node.attribute and separate out
-        # selected objects.
-        objs = []
-        for x in reversed(range(len(attributes))):
-            if '.' in attributes[x]:
-                # This works for compound attributes too.  Trust me.
-                null, attributes[x] = selectedAttributes.splitAttr(attributes[x])
-            else:
-                objs.append(attributes.pop(x))
-        attributes = list(set(attributes))
-
-        # Select the attributes on every node selected
-        for attr in attributes:
-            for node in nodes:
-                try:
-                    cmd.selectionConnection(selectionConnection, edit=True, select='%s.%s' % (node, attr))
-                except RuntimeError:
-                    # That attribute probably didn't exist on that node.
-                    pass
-
-        # reselect objects
-        for obj in objs:
-            cmd.selectionConnection(selectionConnection, edit=True, select=obj)
-
+    if graphInfo.isValid():
+        # Sync graph editor selection to channel box.
+        syncChannelBox(graphInfo=graphInfo)
     else:
         syncGraphEditor()
 
@@ -320,7 +370,7 @@ def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribu
         if not attribute:
             om.MGlobal.displayInfo('Node %s has no attribute passed.  An attribute is needed to find a connection!' % node)
 
-    if outAttr == None:
+    if outAttr is None:
         outAttr = not inAttr
     else:
         inAttr = not outAttr

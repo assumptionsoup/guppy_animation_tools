@@ -797,8 +797,8 @@ def loadKeys(reload=0):
     attrs = []
 
     # Find selected keyframes if graph editor is open.
-    graphPanel = selectedAttributes.findGraphEditorPanel()
-    if graphPanel and selectedAttributes.isGraphEditorVisible(graphPanel):
+    graphEditor = selectedAttributes.GraphEditorInfo.detect(restrictToVisible=True)
+    if graphEditor.isValid():
         attrs = cmd.keyframe(q=1, n=1, sl=1)
 
     # If none are selected, get any keys on the current frame that are
