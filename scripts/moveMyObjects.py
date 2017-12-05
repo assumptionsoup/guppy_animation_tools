@@ -356,22 +356,13 @@ except NameError:
     _globalController = MoveMyObjects()
 
 
-class RightClickButton(QtWidgets.QPushButton):
-    rightClicked = QtCore.Signal()
-
-    def mousePressEvent(self, event):
-        super(RightClickButton, self).mousePressEvent(event)
-        if event.button() == QtCore.Qt.RightButton:
-            self.rightClicked.emit()
-
-
 class MoveMyObjectsWidget(QtWidgets.QWidget):
     controller = _globalController
 
     def __init__(self, parent=None):
         super(MoveMyObjectsWidget, self).__init__(parent=parent)
         self._buildLayout()
-        self._connectSlots()
+        self._connectSignals()
 
         # Set delete on close, so that destroyed() is called and our
         # callbacks are cleaned up.  I would have preferred to use
@@ -420,8 +411,8 @@ class MoveMyObjectsWidget(QtWidgets.QWidget):
 
     def _buildLayout(self):
         self.setWindowTitle("Move My Objects")
-        self.savePositionsButton = RightClickButton("Save Positions")
-        self.applyPositionsButton = RightClickButton("Apply Positions")
+        self.savePositionsButton = utils.ui.RightClickButton("Save Positions")
+        self.applyPositionsButton = utils.ui.RightClickButton("Apply Positions")
         self.setLayout(QtWidgets.QHBoxLayout())
         self.setMinimumWidth(150)
         self.layout().addWidget(self.savePositionsButton)
@@ -432,7 +423,7 @@ class MoveMyObjectsWidget(QtWidgets.QWidget):
         self.move(QtWidgets.QApplication.desktop().screen().rect().center()
             - self.rect().center())
 
-    def _connectSlots(self):
+    def _connectSignals(self):
         self.savePositionsButton.clicked.connect(self.controller.savePositions)
         self.applyPositionsButton.clicked.connect(self.controller.applyPositions)
         self.applyPositionsButton.rightClicked.connect(

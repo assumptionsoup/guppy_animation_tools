@@ -41,3 +41,13 @@ def getMayaWindow():
     Get the main Maya window as a QtGui.QMainWindow instance
     '''
     return toQtWindow(pm.melGlobals['$gMainWindow'])
+
+
+## Common Widgets ##
+class RightClickButton(QtWidgets.QPushButton):
+    rightClicked = QtCore.Signal()
+
+    def mousePressEvent(self, event):
+        super(RightClickButton, self).mousePressEvent(event)
+        if event.button() == QtCore.Qt.RightButton:
+            self.rightClicked.emit()
