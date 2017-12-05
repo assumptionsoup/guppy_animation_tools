@@ -249,7 +249,13 @@ def clearGraphEditor(panel):
 
     selectionConnection = selectedAttributes.selectionConnectionFromPanel(panel)
 
+    # Clear current selection, including filtered attributes
     cmd.selectionConnection(selectionConnection, e=1, clr=1)
+
+    # Reselect just the nodes. Restoring the graph editor to the state
+    # it would be in if you had just selected these.
+    for node in cmd.ls(selection=True):
+        cmd.selectionConnection(selectionConnection, edit=True, select=node)
 
 
 def syncGraphEditor(graphInfo=None):
