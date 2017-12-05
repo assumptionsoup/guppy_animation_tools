@@ -222,17 +222,25 @@ def clearAttributes(graphEditor=False, channelBox=False):
 
 def clearChannelBox():
     '''Deselects the channelBox attributes.'''
-    # Since Maya does not provide direct access to channel box
-    # selection, we need to trick Maya into de-selecting channel box
-    # attributes by reselecting the current object selection.
-    selected = cmd.ls(sl=1)
-    if selected:
-        cmd.select(clear=1)
-        # We must defer the re-selection, or Maya won't refresh the gui.
-        # The refresh() command won't work because that only refreshes
-        # the viewport (as far as I know).  The "channelBox -update"
-        # command does nothing.
-        cmd.evalDeferred(lambda: cmd.select(selected))
+
+    try:
+        # I hear that the select flag was added in Maya 2016 Extension 2
+        pm.channelBox(
+            pm.melGlobals['gChannelBoxName'], select=None, edit=True)
+    except TypeError:
+
+        # ## Legacy Approach.
+        # Since Maya does not provide direct access to channel box
+        # selection, we need to trick Maya into de-selecting channel box
+        # attributes by reselecting the current object selection.
+        selected = cmd.ls(sl=1)
+        if selected:
+            cmd.select(clear=1)
+            # We must defer the re-selection, or Maya won't refresh the gui.
+            # The refresh() command won't work because that only refreshes
+            # the viewport (as far as I know).  The "channelBox -update"
+            # command does nothing.
+            cmd.evalDeferred(lambda: cmd.select(selected))
 
 
 def clearGraphEditor(panel):
