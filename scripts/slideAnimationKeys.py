@@ -1313,54 +1313,10 @@ def updateKeys(percent=None):
     if not settings.absolute and not settings.resetOnApply:
         if percent == 0.0:  # Zero is meant to be a reset of sorts.  On relative mode I don't know why someone would want to move keys by 0,
             state.prevPercent = 0.0  # so if they try to do this, they're probably attempting to reset things.
-        if settings.compoundPercentage:
-            # Creates a bell curve between -100 and 100.  The top of the
-            # bell curve is probably more of a point, with -100 and 100
-            # being asymptotes. It's been awhile since I've done stuff
-            # like this.  Quite frustrating.  I'm sure there's a better
-            # way to do it.
+        percent = state.prevPercent + percent
+        state.prevPercent = percent
 
-            if state.prevPercent == 0.0:
-                # Avoid divide by zero messages.
-                state.prevPercent = 100.0
-
-            negative = percent < 0
-
-            # Avoid divide by zero..
-            if percent >= 100:
-                percent = 99
-            elif percent <= -100:
-                percent = -99
-
-            calc = 0
-            if negative and 0 < state.prevPercent < 100 or (not negative and -100 < state.prevPercent < 0):
-                # Inverse function to more and more quickly reverse percentages
-                calc = 1
-                if abs(percent) == 99:
-                    newPercent = 100.0
-                else:
-                    newPercent = -1 * (state.prevPercent / (abs(percent) / 100 - 1))
-
-                # If the inverse function overshoots 100%, switch to regular function.
-                if abs(newPercent) > 100:
-                    calc = 0
-            if not calc:
-                newPercent = abs(state.prevPercent) * (1 - abs(percent / 100.0))
-                if negative:
-                    newPercent = newPercent * - 1
-
-            state.prevPercent = newPercent
-            percent = 1 - abs(newPercent) / 100
-
-            if newPercent < 0:
-                percent = percent * -1
-
-        else:
-            percent = state.prevPercent + percent
-            state.prevPercent = percent
-            percent = percent / 100.0
-    else:
-        percent = percent / 100.0
+    percent = percent / 100.0
 
     blendUpPercent = percent
     blendDownPercent = percent
