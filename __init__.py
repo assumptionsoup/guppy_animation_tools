@@ -23,6 +23,8 @@ import sys
 
 import pymel.internal.plogging as plogging
 
+__license__ = 'LGPL v3'
+
 # Include the scripts folder in this package.  Which allows for:
 # import guppy_animation_tools.cleverKeys
 

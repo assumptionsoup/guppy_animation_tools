@@ -1,10 +1,8 @@
 '''Slide Animation Keys is a tool that allows animators to quickly adjust keys.
 
-It is also badly in need of a rewrite.
-
 *******************************************************************************
     License and Copyright
-    Copyright 2011-2014 Jordan Hueckstaedt
+    Copyright 2011-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -24,94 +22,128 @@ It is also badly in need of a rewrite.
     Author:........Jordan Hueckstaedt
     Website:.......RubberGuppy.com
     Email:.........AssumptionSoup@gmail.com
+
 ****************************************************************************'''
 
-__author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2011-2014'
-__license__ = 'LGPL v3'
-__version__ = '1.96'
-__email__ = 'AssumptionSoup@gmail.com'
-__status__ = 'Beta'
-
+__version__ = '2.0'
 from functools import partial
 import collections
+import copy
 import textwrap
 
 import maya.cmds as cmd
 import maya.OpenMaya as om
+import pymel.core as pm
 
-import selectedAttributes
-import guppy_animation_tools as gat
-
-
-_log = gat.getLogger(__name__)
+from guppy_animation_tools import selectedAttributes, getLogger, utils
+from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
 
 
-def setDefaultOptionVar(name, value):
-    if not cmd.optionVar(exists=name):
-        if isinstance(value, basestring):
-            cmd.optionVar(sv=(name, value))
-        elif isinstance(value, collections.Iterable):
-            if len(value) > 0:
-                if any(isinstance(v, basestring) for v in value):
-                    cmd.optionVar(sv=(name, value[0]))
-                    for i in range(1, len(value)):
-                        cmd.optionVar(sva=(name, value[i]))
-                else:
-                    cmd.optionVar(fv=(name, value[0]))
-                    for i in range(1, len(value)):
-                        cmd.optionVar(fva=(name, value[i]))
-        else:
-            cmd.optionVar(fv=(name, value))
+_log = getLogger(__name__)
 
 
-class SAKSettings(object):
+# From python 3.5 docs, isclose()
+def isFloatClose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+
+class PersistentSettings(object):
+    '''
+    Global persistent settings store.
+
+    Uses pm.env.optionVars under the hood which may lead to some quirkieness.
+    '''
+    modes = ('Blend', 'Average', 'Default', 'Shrink', 'Level', 'Linear')
+    _attrBindings = {
+        'mode': 'jh_sak_mode',
+        'realtime': 'jh_sak_realtime',
+        'resetOnApply': 'jh_sak_resetOnApply',
+        'compoundPercentage': 'jh_sak_compoundPercentage',
+        'manualReload': 'jh_sak_manualReload',
+        'showSlider': 'jh_sak_showSlider',
+        'showSliderField': 'jh_sak_showSliderField',
+        'showQuickPick': 'jh_sak_showQuickPick',
+        'quickPickNums': 'jh_sak_quickPickNums',
+        'maxSlider': 'jh_sak_maxSlider',
+        'absolute': 'jh_sak_absolute',
+        'findCurrentKeys': 'jh_sak_findCurrentKeys',
+    }
+    _defaultValues = {
+        'mode': modes[0],
+        'realtime': True,
+        'resetOnApply': False,
+        'compoundPercentage': False,
+        'manualReload': False,
+        'showSlider': True,
+        'showSliderField': True,
+        'showQuickPick': True,
+        'quickPickNums': (-100, -60, -30, 0, 30, 60, 100),
+        'maxSlider': 100,
+        'absolute': True,
+        'findCurrentKeys': True,
+    }
 
     def __init__(self):
-        self.modes = ['Blend', 'Average', 'Default', 'Shrink', 'Level', 'Linear']
-        self.keys = {}
-        self.undoState = 1
-        self.shrinkWarning = False
-        self.buildingSettings = 0
-        self.sliding = 0
-        self.lastPercent = 0
-        self.mode = 'Blend'
-        self.uiControl = {}
-
-        # Get GUI Settings from option vars - set them if they don't exist
-        setDefaultOptionVar('jh_sak_mode', self.modes[0])
-        setDefaultOptionVar('jh_sak_realtime', 1)
-        setDefaultOptionVar('jh_sak_resetOnApply', 0)
-        setDefaultOptionVar('jh_sak_compoundPercentage', 0)
-        setDefaultOptionVar('jh_sak_manualReload', 0)
-        setDefaultOptionVar('jh_sak_absolute', 1)
-        setDefaultOptionVar('jh_sak_findCurrentKeys', 1)
-        setDefaultOptionVar('jh_sak_maxSlider', 100)
-        setDefaultOptionVar('jh_sak_showSlider', 1)
-        setDefaultOptionVar('jh_sak_showSliderField', 1)
-        setDefaultOptionVar('jh_sak_showQuickPick', 1)
-        setDefaultOptionVar('jh_sak_quickPickNums', [-100, -60, -30, 0, 30, 60, 100])
-
-        # Load global settings from option vars.
-        self.mode = cmd.optionVar(q='jh_sak_mode')
-        self.realtime = cmd.optionVar(q='jh_sak_realtime')
-        self.resetOnApply = cmd.optionVar(q='jh_sak_resetOnApply')
-        self.compoundPercentage = cmd.optionVar(q='jh_sak_compoundPercentage')
-        self.manualReload = cmd.optionVar(q='jh_sak_manualReload')
-        self.showSlider = cmd.optionVar(q='jh_sak_showSlider')
-        self.showSliderField = cmd.optionVar(q='jh_sak_showSliderField')
-        self.showQuickPick = cmd.optionVar(q='jh_sak_showQuickPick')
-        self.quickPickNums = cmd.optionVar(q='jh_sak_quickPickNums')
-        self.maxSlider = cmd.optionVar(q='jh_sak_maxSlider')
-        self.absolute = cmd.optionVar(q='jh_sak_absolute')
-        self.findCurrentKeys = cmd.optionVar(q='jh_sak_findCurrentKeys')
+        # Settings are stored between sessions in option vars.
+        for attr, optionVar in self._attrBindings.iteritems():
+            pm.env.optionVars.setdefault(optionVar, self._defaultValues[attr])
 
         # This shouldn't happen anymore, but I accidentally made this
         # one a single number once, and it NEEDS to be an array.  So
         # this forces it.
         if not isinstance(self.quickPickNums, collections.Iterable):
             self.quickPickNums = [self.quickPickNums]
-settings = SAKSettings()
+
+    def factoryReset(self):
+        # Reset all settings back to their default values.
+
+        for attr, optionVar in self._attrBindings.iteritems():
+            try:
+                pm.env.optionVars.pop(optionVar)
+            except KeyError:
+                # This should never execute. PyMel doesn't seem to have
+                # implemented pop() following python convention - it
+                # returns 0 if the key does not exist (and one if it
+                # does), rather than raising an exception.
+                pass
+        self.__init__()
+
+    def __getattribute__(self, attr):
+        # Get option var attributes
+        try:
+            optionVarName = object.__getattribute__(self, '_attrBindings')[attr]
+        except KeyError:
+            return object.__getattribute__(self, attr)
+        else:
+            return pm.env.optionVars[optionVarName]
+
+    def __setattr__(self, attr, value):
+        # Set option var attributes
+        try:
+            optionVarName = self._attrBindings[attr]
+        except KeyError:
+            super(PersistentSettings, self).__setattr__(attr, value)
+        else:
+            pm.env.optionVars[optionVarName] = value
+
+
+settings = PersistentSettings()
+
+
+class GlobalState(object):
+    def __init__(self):
+        self.keys = {}
+        self.undoState = True
+        self.sliding = False
+        self.prevPercent = 0.0
+
+        # Delete Me
+        self.buildingSettings = False
+        self.uiControl = {}
+        self.segmentCollection = None
+
+
+state = GlobalState()
 
 
 def ui():
@@ -123,11 +155,8 @@ def ui():
     sliderFieldLabel = 'jh_sak_sliderFieldLabel'
     modeDrop = 'jh_sak_modeDropDown'
     manualReload = 'jh_sak_manualReloadButton'
-    maxLabel = 'jh_sak_maxLabel'
-    maxField = 'jh_sak_maxField'
     applyButton = 'jh_sak_applyButton'
     quickPickButton = ['jh_sak_quickPickButton%s' % x for x in range(len(settings.quickPickNums))]
-    quickPickInvert = 'jh_sak_quickPickInvert'
 
     if cmd.window('slideAnimationKeysWin', exists=1):
         cmd.deleteUI('slideAnimationKeysWin')
@@ -143,7 +172,7 @@ def ui():
 
     cmd.formLayout('jh_sak_formLay', numberOfDivisions=100)
 
-    lastMode = cmd.optionVar(q='jh_sak_mode')
+    lastMode = settings.mode
 
     cmd.optionMenu(
         modeDrop,
@@ -170,7 +199,7 @@ def ui():
         vis=settings.showSliderField,
         label='Custom Strength')
 
-    settings.uiControl['sliderField'] = cmd.intField(
+    state.uiControl['sliderField'] = cmd.intField(
         'jh_sak_sliderField',
         minValue=-1 * settings.maxSlider,
         maxValue=settings.maxSlider,
@@ -185,7 +214,7 @@ def ui():
             c=partial(setSlide, settings.quickPickNums[x], qp=1),
             label='%s%%' % settings.quickPickNums[x])
 
-    settings.uiControl['slider'] = cmd.intSlider(
+    state.uiControl['slider'] = cmd.intSlider(
         'jh_sak_sliderSlider',
         minValue=-1 * settings.maxSlider,
         maxValue=settings.maxSlider,
@@ -224,9 +253,9 @@ def ui():
     layout['af'].append((sliderFieldLabel, 'top', 8))
     layout['ap'].append((sliderFieldLabel, 'left', 5, reloadWidth))
 
-    layout['af'].append((settings.uiControl['sliderField'], 'top', 5))
-    layout['ac'].append((settings.uiControl['sliderField'], 'left', 5, sliderFieldLabel))
-    layout['af'].append((settings.uiControl['sliderField'], 'right', 5))
+    layout['af'].append((state.uiControl['sliderField'], 'top', 5))
+    layout['ac'].append((state.uiControl['sliderField'], 'left', 5, sliderFieldLabel))
+    layout['af'].append((state.uiControl['sliderField'], 'right', 5))
 
     # Position quick picks
     totalDivisor = len(quickPickButton)
@@ -252,12 +281,12 @@ def ui():
     if settings.showQuickPick:
         above = quickPickButton[0]
 
-    layout['ac'].append((settings.uiControl['slider'], 'top', 5, above))
-    layout['af'].append((settings.uiControl['slider'], 'left', 5))
-    layout['af'].append((settings.uiControl['slider'], 'right', 5))
+    layout['ac'].append((state.uiControl['slider'], 'top', 5, above))
+    layout['af'].append((state.uiControl['slider'], 'left', 5))
+    layout['af'].append((state.uiControl['slider'], 'right', 5))
 
     if settings.showSlider:
-        above = settings.uiControl['slider']
+        above = state.uiControl['slider']
 
     layout['ac'].append((applyButton, 'top', 5, above))
     layout['af'].append((applyButton, 'left', 5))
@@ -355,7 +384,7 @@ def aboutWin(controlValue):
 def settingsWin(controlValue=None):
 
     global settings
-    settings.buildingSettings = 1
+    state.buildingSettings = True
 
     if cmd.window('jh_sak_settingsWin', exists=1):
         cmd.deleteUI('jh_sak_settingsWin')
@@ -549,13 +578,13 @@ def settingsWin(controlValue=None):
         e=1,
         **layout)
     cmd.showWindow('jh_sak_settingsWin')
-    settings.buildingSettings = 0
+    state.buildingSettings = False
 
 
 def setSettings(controlValue, toggle=None):
 
     global settings
-    if settings.buildingSettings:
+    if state.buildingSettings:
         # Avoid recursive loop.  Not sure why this function can get
         # called DURING a gui creation, but it does.
         return
@@ -618,26 +647,7 @@ def setSettings(controlValue, toggle=None):
                 elif numQuickPick > len(quickPickNums):
                     quickPickNums.insert(len(quickPickNums) * (x % 2), 0)
 
-        # Update Option Vars
-        cmd.optionVar(fv=('jh_sak_absolute', absolute))
-        cmd.optionVar(fv=('jh_sak_realtime', realtime))
-        cmd.optionVar(fv=('jh_sak_resetOnApply', resetOnApply))
-        cmd.optionVar(fv=('jh_sak_compoundPercentage', compoundPercentage))
-        cmd.optionVar(fv=('jh_sak_maxSlider', maxSlider))
-        cmd.optionVar(fv=('jh_sak_manualReload', manualReload))
-        cmd.optionVar(fv=('jh_sak_findCurrentKeys', findCurrentKeys))
-        cmd.optionVar(fv=('jh_sak_showSlider', showSlider))
-        cmd.optionVar(fv=('jh_sak_showSliderField', showSliderField))
-        cmd.optionVar(fv=('jh_sak_showQuickPick', showQuickPick))
-
-
-        for x in range(len(quickPickNums)):
-            if x == 0:
-                cmd.optionVar(fv=('jh_sak_quickPickNums', quickPickNums[x]))
-            else:
-                cmd.optionVar(fva=('jh_sak_quickPickNums', quickPickNums[x]))
-
-        # Update global vars
+        # Update settings object
         settings.absolute = absolute
         settings.realtime = realtime
         settings.resetOnApply = resetOnApply
@@ -659,19 +669,19 @@ def setSettings(controlValue, toggle=None):
 
 
 def updateSliderGui(value=None, fromField=None):
-    if 'slider' in settings.uiControl and 'sliderField' in settings.uiControl:
+    if 'slider' in state.uiControl and 'sliderField' in state.uiControl:
         if value == None:
             if fromField == 'sliderField':
-                if cmd.intField(settings.uiControl['sliderField'], ex=1):
-                    value = cmd.intField(settings.uiControl['sliderField'], q=1, v=1)
+                if cmd.intField(state.uiControl['sliderField'], ex=1):
+                    value = cmd.intField(state.uiControl['sliderField'], q=1, v=1)
             else:
-                if cmd.intSlider(settings.uiControl['slider'], ex=1):
-                    value = cmd.intSlider(settings.uiControl['slider'], q=1, v=1)
+                if cmd.intSlider(state.uiControl['slider'], ex=1):
+                    value = cmd.intSlider(state.uiControl['slider'], q=1, v=1)
 
-        if cmd.intSlider(settings.uiControl['slider'], ex=1):
-            cmd.intSlider(settings.uiControl['slider'], e=1, v=value)
-        if cmd.intField(settings.uiControl['sliderField'], ex=1):
-            cmd.intField(settings.uiControl['sliderField'], e=1, v=value)
+        if cmd.intSlider(state.uiControl['slider'], ex=1):
+            cmd.intSlider(state.uiControl['slider'], e=1, v=value)
+        if cmd.intField(state.uiControl['sliderField'], ex=1):
+            cmd.intField(state.uiControl['sliderField'], e=1, v=value)
     return value
 
 
@@ -684,12 +694,12 @@ def startSlide(slideValue):
     if settings.realtime and settings.absolute:
         loadKeys()
         updateKeys()
-    settings.sliding = 1
+    state.sliding = True
 
 
 def endSlide(slideValue):
     global settings
-    settings.sliding = 0
+    state.sliding = False
     enableUndo()
 
 
@@ -726,267 +736,570 @@ def setMode(mode):
     # Save mode
     global settings
     settings.mode = mode
-    cmd.optionVar(sv=('jh_sak_mode', mode))
 
     # Update stuff according to UI change.
     if settings.realtime and settings.absolute:
         updateKeys()
         enableUndo()
 
-    # Reset shrink mode not working warning every time we change mode.
-    # It could be hours between the user changing modes.  They may have
-    # forgotten the selection doesn't work. Okay, that may be an
-    # unrealistic situation. Still, they might miss it or something.
-    settings.shrinkWarning = False
-
 
 def enableUndo(apply=None):
     """Undo is set up to ignore all the calls to updateKeys while sliding,
     making the function interactive, and still have the expected results
-    on the undo queue.  Though this doesn't seem to work quite right yet,
-    so beware!"""
+    on the undo queue."""
 
     global settings
     if settings.realtime or apply:
-        if not settings.undoState:
+        if not state.undoState:
             try:
                 cmd.undoInfo(cck=1)  # close chunk
             except TypeError:
                 cmd.undoInfo(swf=1)  # turn undo back on
                 cmd.undoInfo(q=1, un=0)  # needs this to work for some reason
-            settings.undoState = 1
+            state.undoState = 1
 
 
 def disableUndo():
     global settings
-    if settings.undoState:
+    if state.undoState:
         try:
             cmd.undoInfo(ock=1)  # Open chunk
         except TypeError:
             cmd.undoInfo(swf=0)  # turn undo off
-        settings.undoState = 0
+        state.undoState = 0
 
 
-def isConsecutive(nList):
-    return not [1 for x in range(1, len(nList)) if nList[x] - nList[x - 1] != 1]
+class Key(object):
+    '''
+    Represents a single key in Maya.
+
+    Lazy loads most attributes that require information from Maya.
+
+    Usually instantiated via the Curve object.
+    '''
+    def __init__(self, curve, index, selected):
+        self.curve = curve
+        self.index = index
+        self.selected = selected
+        self._cache = {}
+
+    @classmethod
+    def fromCurve(cls, curve):
+        keys = []
+        selectedIndexes = set(pm.keyframe(curve.name, query=1, indexValue=1, selected=1) or [])
+        for index in pm.keyframe(curve.name, query=1, indexValue=1):
+            selected = index in selectedIndexes
+            key = cls(curve, index, selected)
+            keys.append(key)
+        return keys
+
+    @property
+    def time(self):
+        try:
+            self._cache['time']
+        except KeyError:
+            self._cache['time'] = pm.keyframe(
+                self.curve.name,
+                query=True,
+                index=(self.index, self.index),
+                timeChange=True)[0]
+        return self._cache['time']
+
+    @property
+    def value(self):
+        try:
+            self._cache['value']
+        except KeyError:
+            self._cache['value'] = pm.keyframe(
+                self.curve.name, query=True, absolute=True, valueChange=True,
+                index=(self.index, self.index))[0]
+        return self._cache['value']
+
+    @value.setter
+    def value(self, value):
+        # I'm still torn if this should be a property or an explicit
+        # setter because we are setting state in Maya.
+        self._cache['value'] = value
+        pm.keyframe(self.curve.name, absolute=1, valueChange=value,
+                    index=(self.index, self.index))
+
+    def isFirst(self):
+        '''
+        Is this key the first key on a curve?
+        '''
+        return self.index == 0
+
+    def isLast(self):
+        '''
+        Is this key the last key on a curve?
+        '''
+
+        # How to query maya for this info:
+        # totalKeys = self.curve.node.keyTimeValue.numElements()
+        # I'm going to trust the curve for now, it should be quicker.
+        return len(self.curve.keys) - 1 == self.index
+
+    def __eq__(self, other):
+        if not isinstance(other, Key):
+            return NotImplemented
+
+        # Does not test that the DATA is the same, but that these
+        # represent the same keys.
+        return self.curve == other.curve and self.index == other.index
+
+    def __str__(self):
+        return '%s:%s' % (self.curve.name, self.index)
+
+    def __repr__(self):
+        return str(self)
 
 
-def loadKeys(reload=0):
-    # This function loads the currently selected keys.  It can be called
-    # explicitly with reload = 1 or implicitly from other functions.  It
-    # also tests if these new keys are the same as the old ones and
-    # compares their values against the old ones.  If they have changed
-    # it updates the keys, making things seamless and automatic for the
-    # user.  This is so the user doesn't manually have to press a
-    # "Reload Keys" button.
+class Curve(object):
+    '''
+    Represents an entire animation curve in Maya.
+
+    Holds data about the curve node, and the attribute associated with
+    that curve, and every key on the curve.
+
+    Lazy loads most attributes that require information from Maya.
+
+    Should be instantiated by the factory method `detectCurves` or
+    `fromAttribute`.
+    '''
+    def __init__(self, name, keys=None):
+        self.name = name
+
+        # Keys are read-only.  The expectation is that SAK will refresh
+        # objects rather than expect this object to sync state with Maya
+        self.keys = tuple(keys) if keys else tuple()
+
+    @property
+    def node(self):
+        # Lazily fetch the pymel curve node
+        try:
+            self._node
+        except AttributeError:
+            self._node = pm.PyNode(self.name)
+        return self._node
+
+    @property
+    def attribute(self):
+        # Lazily fetch the pymel attribute this curve is connected to
+        try:
+            self._attribute
+        except AttributeError:
+            attribute = selectedAttributes.getFirstConnection(
+                self.name, attribute='output', outAttr=True, findAttribute=True)
+            self._attribute = pm.PyNode(attribute)
+
+        return self._attribute
+
+    def selectedKeys(self):
+        for key in self.keys:
+            if key.selected:
+                yield key
+
+    @property
+    def defaultValue(self):
+        try:
+            # Cache the results - we'll rely on the rest of SAK to
+            # refresh curves often enough that cache-invalidation
+            # shouldn't become an issue
+            self._defaultValue
+        except AttributeError:
+            # Get the default value of this attribute / curve
+            defaultValues = pm.attributeQuery(
+                self.attribute.attrName(),
+                node=self.attribute.node(),
+                listDefault=True)
+
+            # I don't think our animation curve node will every be connected
+            # to a compound attribute, so it should be safe to return the
+            # first value only.
+            self._defaultValue = defaultValues[0]
+        return self._defaultValue
+
+    @classmethod
+    def fromAttribute(cls, attribute):
+        '''
+        Returns a list of curves associated with an attribute.
+        '''
+        curveNames = pm.keyframe(attribute, query=1, name=1) or []
+        curves = []
+        for curveName in curveNames:
+            curve = cls(curveName)
+            curve.keys = Key.fromCurve(curve)
+            curves.append(curve)
+        return curves
+
+    @classmethod
+    def detectCurves(cls):
+        curves = []
+        # Find selected keyframes if graph editor is open.
+        graphEditor = selectedAttributes.GraphEditorInfo.detect(restrictToVisible=True)
+        if graphEditor.isValid():
+            _log.debug("Searching for selected keys")
+            # Find curves with selected keys
+            for attr in pm.keyframe(query=1, name=1, selected=1) or []:
+                curves.extend(cls.fromAttribute(attr))
+
+        if not curves and settings.findCurrentKeys:
+            # Nothing selected, set keys on current frame as selected
+            _log.debug("No keys selected, grabbing from current frame")
+            for attr in selectedAttributes.get(detectionType='panel'):
+                curves.extend(cls.fromAttribute(attr))
+
+            time = pm.currentTime(query=1)
+            for x in reversed(range(len(curves))):
+                keyIndices = pm.keyframe(curves[x].name, query=1, indexValue=1, time=(time, time))
+                if keyIndices:
+                    curves[x].keys[keyIndices[0]].selected = True
+                else:
+                    # Remove curves that have no keys on the current frame
+                    curves.pop(x).name
+        return curves
+
+    def __eq__(self, other):
+        if not isinstance(other, Curve):
+            return NotImplemented
+        return other.name == self.name
+
+
+class SegmentKey(Key):
+    '''
+    A Key that is doubly linked with a CurveSegment and/or SegmentCollection.
+
+    Contains extra attributes that transparently access segments /
+    collections for calculations that involve more than a single key.
+    '''
+    def __init__(self, key, segment=None):
+        super(SegmentKey, self).__init__(key.curve, key.index, key.selected)
+        # Segment keys are doubly linked with their segement to allow
+        # for lazy loading and caching of data generated over segments
+        self.segment = segment
+        self._cache = copy.copy(key._cache)
+
+    @property
+    def originalValue(self):
+        try:
+            self._cache['originalValue']
+        except KeyError:
+            # print 'caching original value'
+            self._cache['originalValue'] = self.value
+        return self._cache['originalValue']
+
+    @Key.value.setter
+    def value(self, value):
+        self.originalValue  # ensure original value is cached before changing.
+        # super(SegmentKey, type(self)).value.fset(self, value)
+        Key.value.fset(self, value)
+
+    @property
+    def levelValue(self):
+        try:
+            return self.segment.collection.levelValue
+        except AttributeError:
+            raise ValueError('Key/Segment is not linked to collection.  '
+                             'Cannot find level value.')
+
+    @property
+    def linearValue(self):
+        try:
+            return self.segment.collection.getLinearValue(self)
+        except AttributeError:
+            raise ValueError('Key/Segment is not linked to collection.  '
+                             'Cannot find linear value.')
+    @property
+    def shrinkValue(self):
+        try:
+            return self.segment.collection.getShrinkValue(self)
+        except AttributeError:
+            raise ValueError('Key/Segment is not linked to collection.  '
+                             'Cannot find shrink value.')
+
+    def __hash__(self):
+        # Maya can't have spaces or dashes in the name, which helps us
+        # guarantee that our index hash won't collide with a weirdly
+        # named curve
+        return hash('%s - %s' % (self.index, self.segment.curve.name))
+
+
+class CurveSegment(object):
+    '''
+    A segment of an animation curve.
+
+    A curve segment contains sequential keys in an animation curve. It
+    may contain a partial collection of keys, or the entire curve.
+
+    A CurveSegment is doubly linked with the collection that (may)
+    contain it, and the SegmentKeys it contains.  This allows caching
+    and calculation of various values across keys, segments, and
+    collections.
+    '''
+    def __init__(self, curve, keys, collection=None):
+        self.collection = collection
+        self.curve = curve
+        self.keys = [SegmentKey(key, segment=self) for key in keys]
+        self._cache = {}
+
+        # Find neighboring keys
+        lastKey = self.keys[-1]
+        firstKey = self.keys[0]
+        if lastKey.isLast():
+            # lastKey is the last key in the curve
+            self.neighborRight = lastKey
+        else:
+            self.neighborRight = curve.keys[lastKey.index + 1]
+
+        if firstKey.isFirst():
+            # firstKey is the first key in the curve
+            self.neighborLeft = firstKey
+        else:
+            self.neighborLeft = curve.keys[firstKey.index - 1]
+
+    @classmethod
+    def fromCurve(cls, curve, collection=None):
+        '''
+        Returns a list of CurveSegment objects for every set of
+        consecutive keys selected.
+        '''
+        lastIndex = None
+        blenders = []
+        keys = []
+
+        for key in curve.selectedKeys():
+            if lastIndex is not None:
+                if lastIndex + 1 != key.index:
+                    # Non-consecutive key, create CurveSegment and restart
+                    # key finding process
+                    blenders.append(cls(curve, keys, collection=collection))
+                    keys = [key]
+                    continue
+            keys.append(key)
+            lastIndex = key.index
+
+        if keys:
+            blenders.append(cls(curve, keys, collection=collection))
+        return blenders
+
+    def valueAtTime(self, time):
+        try:
+            timing = self._cache['timing']
+        except KeyError:
+            timing = self._cache['timing'] = {}
+
+            # Fill out timing with existing keys first
+            for key in self.keys:
+                timing[key.time] = key.value
+
+        try:
+            return timing[time]
+        except KeyError:
+            # This time doesn't have a key, resort to querying Maya.
+
+            # API method does not account for UI units (degrees vs radians,
+            # millimeters vs centimeters, etc.)
+            # mfn = self.curve.node.__apimfn__()
+            # value = timing[time] = mfn.evaluate(pm.api.MTime(time))
+
+            value = pm.keyframe(self.curve.name, query=True,
+                                eval=True, absolute=True, t=(time, time))[0]
+            return value
+
+
+class SegmentCollection(object):
+    '''
+    A collection of curve segments.
+
+    Collects and detects curve segments.  Can perform calculations and
+    caching of various data that requires knowing about all segments.
+
+    Doubly linked with all owned segments.
+    '''
+    def __init__(self, segments=None):
+        self.segments = segments or []
+        self._cache = {}
+
+    def _cacheLevelAndLinear(self):
+        try:
+            self._cache['levelValue']
+            self._cache['linearValues']
+        except KeyError:
+            self._cache['levelValue'] = 0.0
+            self._cache['linearValues'] = {}
+        else:
+            # Already cached.
+            return
+
+        # Find Level Value and set the linear goals
+        valueTotal = 0.0
+        keyCount = 0
+        for segment in self.segments:
+            totalTime = float(segment.neighborRight.time - segment.neighborLeft.time)
+            valueChange = segment.neighborRight.value - segment.neighborLeft.value
+            for key in segment.keys:
+                valueTotal += key.value
+                keyCount += 1
+
+                # Linear goal
+                # Find the value that is the linear interpolation of the
+                # start key to the end key at the current frame
+                try:
+                    t = (key.time - segment.neighborLeft.time) / totalTime
+                except ZeroDivisionError:
+                    t = 0.0
+                self._cache['linearValues'][key] = t * valueChange + segment.neighborLeft.value
+
+        try:
+            self._cache['levelValue'] = valueTotal / keyCount
+        except ZeroDivisionError:
+            self._cache['levelValue'] = 0.0
+
+    def _cacheShrink(self):
+        try:
+            self._cache['shrinkValues']
+            shrinkCache = self._cache['shrinkTiming']
+        except KeyError:
+            self._cache['shrinkValues'] = {}
+            shrinkCache = self._cache['shrinkTiming'] = {}
+        else:
+            # Already cached.
+            return
+
+        for segment in self.segments:
+            print segment.curve.name
+            for key in segment.keys:
+                time = key.time
+                try:
+                    shrinkValue = shrinkCache[time]
+                except KeyError:
+                    total = sum(segment.valueAtTime(time) for segment in self.segments)
+                    shrinkValue = shrinkCache[time] = total / float(len(self.segments))
+
+                self._cache['shrinkValues'][key] = shrinkValue
+
+    def hasSelectionChanged(self, otherCollection):
+        if len(otherCollection.segments) != len(self.segments):
+            # Different number of curves selected
+            return True
+
+        def curveSegmentMap(collection):
+            segmentMap = {}  # curve name : [segment, segment]
+            for segment in collection.segments:
+                segmentMap.setdefault(segment.curve.name, []).append(segment)
+
+            # sort multiple segments by starting key.
+            for segments in segmentMap.itervalues():
+                segments.sort(key=lambda segment: segment.keys[0].index)
+            return segmentMap
+
+        otherSegmentMap = curveSegmentMap(otherCollection)
+        thisSegmentMap = curveSegmentMap(self)
+
+        if set(otherSegmentMap.iterkeys()) != set(thisSegmentMap.iterkeys()):
+            # Different attributes / curves selected
+            print 'curve name mismatch'
+            return True
+
+        for curveName in otherSegmentMap.iterkeys():
+            otherSegments = otherSegmentMap[curveName]
+            theseSegments = thisSegmentMap[curveName]
+            if len(otherSegments) != len(theseSegments):
+                print 'num segments mismatch'
+                return True
+
+            for x in xrange(len(otherSegments)):
+                otherSegment = otherSegments[x]
+                thisSegment = theseSegments[x]
+
+                if [k.index for k in otherSegment.keys] != [k.index for k in thisSegment.keys]:
+                    # Different keys selected
+                    print 'key index mismatch'
+                    return True
+                for x in xrange(len(otherSegment.keys)):
+                    if not isFloatClose(otherSegment.keys[x].value, thisSegment.keys[x].value):
+                        # Key values do not align with cached state
+                        print 'key value mismatch', otherSegment.curve.name, 'current value of',
+                        print thisSegment.keys[x].value, 'does not match cached value of',
+                        print otherSegment.keys[x].value
+                        return True
+
+    @property
+    def levelValue(self):
+        self._cacheLevelAndLinear()
+        return self._cache['levelValue']
+
+    def getLinearValue(self, key):
+        self._cacheLevelAndLinear()
+        # I could have injected this value onto the key,
+        # but I like this a little better, because it's more clear
+        # where this value came from.
+        try:
+            return self._cache['linearValues'][key]
+        except KeyError:
+            raise KeyError('Key %r is not in this collection', key)
+
+    def getShrinkValue(self, key):
+        self._cacheShrink()
+        try:
+            return self._cache['shrinkValues'][key]
+        except KeyError:
+            # I like KeyError here.  It seems appropriate.
+            raise KeyError('Key %r is not in this collection', key)
+
+    @classmethod
+    def detect(cls):
+        '''
+        Detect the currently selected keys/curve segments in Maya.
+
+        Returns a SegmentCollection.  SegmentCollection may not have any
+        segment associated with it, if the user's selection is empty.
+        '''
+        curves = Curve.detectCurves()
+        collection = cls()
+
+        for curve in curves:
+            collection.segments.extend(
+                CurveSegment.fromCurve(curve, collection=collection))
+        return collection
+
+
+def loadKeys(reload=False):
+    '''
+    Reload selected keys in global state.
+
+    If reload=True, performs a force reload.  Otherwise, it will attempt
+    to detect if a reload is needed.
+    '''
 
     # If the user is in the middle of sliding the slider or if there is
     # a manual reload button and it has NOT been pushed then skip
     # everything.
     global settings
-    if settings.manualReload and not reload or settings.sliding:
+    if settings.manualReload and not reload or state.sliding:
         return
 
-    newKeys = {}
-    consecutive = True
-
     # Get keys for each attribute.
-    keys = {}
-    allKeys = {}
-    selectedKeys = True
-    attrs = []
-
-    # Find selected keyframes if graph editor is open.
-    graphEditor = selectedAttributes.GraphEditorInfo.detect(restrictToVisible=True)
-    if graphEditor.isValid():
-        attrs = cmd.keyframe(q=1, n=1, sl=1)
-
-    # If none are selected, get any keys on the current frame that are
-    # selected in the graph editor.  If the graph editor isn't open, get
-    # what is selected in the channel box
-    if attrs:
-        for attr in attrs:
-            keys[attr] = cmd.keyframe(attr, q=1, iv=1, sl=1)
-            allKeys[attr] = cmd.keyframe(attr, q=1, iv=1)
-    elif settings.findCurrentKeys:
-        # Get selected
-        attributes = selectedAttributes.get(detectionType='panel')
-        # Get keyframe attrs from selected (Basically turns . to _ and
-        # expands single objects to object attributes)
-        attrs = []
-        for att in attributes:
-            att = cmd.keyframe(att, q=1, n=1)
-            # Attributes can sometimes be None for some reason... So
-            # check that.
-            if att:
-                attrs.extend(att)
-        attrs = list(set(attrs))
-
-        if attrs:
-            # Find keyframes on current time.  If there are, add them to
-            # keys
-            time = cmd.currentTime(q=1)
-            for attr in attrs:
-                ky = cmd.keyframe(attr, q=1, iv=1, t=(time, time))
-                if ky:
-                    keys[attr] = ky
-                    allKeys[attr] = cmd.keyframe(attr, q=1, iv=1)
-            attrs = keys.keys()
-            selectedKeys = False
-
-    if not attrs:
+    segmentCollection = SegmentCollection.detect()
+    if not segmentCollection.segments:
+        state.segmentCollection = segmentCollection
         # No keys selected, and none under the current frame. Clear keys
         # so we don't operate later on them when nothing is selected.
-        settings.keys = {}
-
-    if attrs:
-        changed = 0
-        gKeys = settings.keys
-        for attr in attrs:
-            if keys[attr]:
-                keys[attr].sort()
-                allKeys[attr].sort()
-                if not isConsecutive(keys[attr]):
-                    consecutive = False
-                # elif keys[attr][0] > allKeys[attr][0] or keys[attr][-1] < allKeys[attr][-1]:
-                else:
-                    first = 1
-                    last = 1
-                    if keys[attr][0] == allKeys[attr][0]:
-                        first = 0
-                    if keys[attr][-1] == allKeys[attr][-1]:
-                        last = 0
-                    keys[attr].insert(0, keys[attr][0] - first)
-                    keys[attr].append(keys[attr][-1] + last)
-
-                    newKeys[attr] = []
-
-                    # Get default value
-                    realNode = cmd.listConnections('%s.output' % attr, d=1, s=0, scn=1, p=1)[0].split('.')
-                    default = cmd.attributeQuery(realNode[1], node=realNode[0], listDefault=1)[0]
-
-                    # Test if keys are the same.  The test is in this
-                    # section for efficiency.  Sorry it's less readable.
-                    keyExisted = attr in gKeys.keys()
-                    if not keyExisted or len(keys[attr]) != len(gKeys[attr]):
-                        changed = 1
-
-                    for x, key in enumerate(keys[attr]):
-                        newKeys[attr].append({})
-                        newKeys[attr][x]['key'] = key
-                        newKeys[attr][x]['value'] = cmd.keyframe(attr, index=(key, key), q = 1, valueChange = 1)[0]
-                        newKeys[attr][x]['time'] = cmd.keyframe(attr, index=(key, key), q = 1, timeChange = 1)[0]
-                        newKeys[attr][x]['default'] = default
-                        newKeys[attr][x]['endKey'] = (x == 0 and len(keys[attr]) > 1 and keys[attr][x + 1] == key) or (x == len(keys[attr]) - 1 and keys[attr][x - 1] == key)
-                        newKeys[attr][x]['lastValue'] = newKeys[attr][x]['value']
-
-                        if not changed and not reload:
-                            # If keys are not on the same frame they have changed
-                            if gKeys[attr][x]['key'] != key:
-                                changed = 1
-                            # If key is a start or end key and matches
-                            # the next or previous key, it is a
-                            # duplicate made on purpose.  lastValue will
-                            # be changed on the real key in the middle.
-                            # So the value check needs to be avoided for
-                            # these duplicates.  These duplicates are
-                            # made so that start and end keys can still
-                            # be manipulated.
-                            if not newKeys[attr][x]['endKey']:
-                                # If keys do not have the same value, they have changed.
-                                if round(gKeys[attr][x]['lastValue'], 5) != round(newKeys[attr][x]['value'], 5):
-                                    changed = 1
-
-
-    # Test if keys have changed.  If they have, reload them and set their defaults.
-    if newKeys and not reload:
-        if gKeys and not changed:
-            if sorted(gKeys.keys()) != sorted(newKeys.keys()):
-                changed = 1
-            if not changed:
-                # Don't do anything else, these are the same keys and
-                # the user hasn't touched them.
-                return
-
-    # Keys will get reloaded beyond this point!
-    settings.shrinkWarning = False
-
-    # Find additional information needed for Shrink and Level function
-    if newKeys:
-
-        # Find Level Value and set the linear goals
-        level = 0
-        count = 0
-        for attr in newKeys:
-            startKey = newKeys[attr][0]
-            endKey = newKeys[attr][-1]
-            for key in range(1, len(newKeys[attr]) - 1):
-                # Sum levels
-                level += newKeys[attr][key]['value']
-                count += 1
-
-                # Linear goal
-                # Find the value that is the linear interpolation of the
-                # start key to the end key at the current frame
-                totalTime = float(endKey['time'] - startKey['time'])
-                try:
-                    t = (newKeys[attr][key]['time'] - startKey['time']) / totalTime
-                except ZeroDivisionError:
-                    t = 0.0
-                goal = (t * (endKey['value'] - startKey['value'])) + startKey['value']
-                newKeys[attr][key]['linear'] = goal
-
-        if count > 0:
-            level /= count
-
-        # Find out how many keys per attribute for shrink, and add level
-        # to each key (it's the same value, but it doesn't make sense to
-        # put it on a lower level)
-        keys = []
-        for attr in newKeys.keys():
-            keys.append(len(newKeys[attr]))
-            for key in newKeys[attr]:
-                key['level'] = level
-
-        center = []
-        if len(set(keys)) == 1:
-            count = []
-            for attr in newKeys.keys():
-                for x in range(len(newKeys[attr]) - 2):
-                    if len(center) <= x:
-                        center.append(0)
-                        count.append(0)
-                    center[x] += newKeys[attr][x + 1]['value']
-                    count[x] += 1
-            for x in range(len(center)):
-                center[x] /= count[x]
-
-        # Add shrink to newKeys
-        for attr in newKeys.keys():
-            for x in range(len(newKeys[attr]) - 2):
-                if center:
-                    newKeys[attr][x + 1]['shrink'] = center[x]
-                else:
-                    newKeys[attr][x + 1]['shrink'] = None
-
-        # Let user know that shrink won't work.
-        if not center:
-            om.MGlobal.displayInfo('Shrink will not work for this selection.  Select the same number of keys for every attribute for shrink to work.')
-
-        settings.keys = newKeys
-
-        # Reset the GUI if appropriate.
-        if reload and settings.absolute:
-            updateSliderGui(0)
-
-    # Update GUI or print warnings/errors
-    if settings.keys:
-        if not selectedKeys:
-            om.MGlobal.displayInfo('Grabbed keys from current frame.')
-    if not consecutive:
-        om.MGlobal.displayWarning('All selected keys must be consecutive.')
-    elif not settings.keys:
         om.MGlobal.displayError('You must select at least one key!')
+        return
+
+    # Test if keys have changed in some way (by value, because the user
+    # changed something, or by a selection change).
+    if (not reload and state.segmentCollection and
+            not segmentCollection.hasSelectionChanged(state.segmentCollection)):
+        return
+
+    # Update state with new keys
+    state.segmentCollection = segmentCollection
+
+    # TODO: Get this gui code out of here.  This has bad smells.
+    if reload and settings.absolute:
+        updateSliderGui(0)
 
 
 def updateKeys(percent=None):
@@ -995,12 +1308,12 @@ def updateKeys(percent=None):
     # undo queue
     disableUndo()
 
-    if percent == None:
-        percent = float(cmd.intSlider(settings.uiControl['slider'], q=1, v=1))
+    if percent is None:
+        percent = float(cmd.intSlider(state.uiControl['slider'], q=1, v=1))
 
     if not settings.absolute and not settings.resetOnApply:
         if percent == 0.0:  # Zero is meant to be a reset of sorts.  On relative mode I don't know why someone would want to move keys by 0,
-            settings.lastPercent = 0.0  # so if they try to do this, they're probably attempting to reset things.
+            state.prevPercent = 0.0  # so if they try to do this, they're probably attempting to reset things.
         if settings.compoundPercentage:
             # Creates a bell curve between -100 and 100.  The top of the
             # bell curve is probably more of a point, with -100 and 100
@@ -1008,13 +1321,11 @@ def updateKeys(percent=None):
             # like this.  Quite frustrating.  I'm sure there's a better
             # way to do it.
 
-            if settings.lastPercent == 0.0:
+            if state.prevPercent == 0.0:
                 # Avoid divide by zero messages.
-                settings.lastPercent = 100.0
+                state.prevPercent = 100.0
 
-            negative = 0
-            if percent < 0:
-                negative = 1
+            negative = percent < 0
 
             # Avoid divide by zero..
             if percent >= 100:
@@ -1023,31 +1334,31 @@ def updateKeys(percent=None):
                 percent = -99
 
             calc = 0
-            if negative and 0 < settings.lastPercent < 100 or (not negative and -100 < settings.lastPercent < 0):
+            if negative and 0 < state.prevPercent < 100 or (not negative and -100 < state.prevPercent < 0):
                 # Inverse function to more and more quickly reverse percentages
                 calc = 1
                 if abs(percent) == 99:
                     newPercent = 100.0
                 else:
-                    newPercent = -1 * (settings.lastPercent / (abs(percent) / 100 - 1))
+                    newPercent = -1 * (state.prevPercent / (abs(percent) / 100 - 1))
 
                 # If the inverse function overshoots 100%, switch to regular function.
                 if abs(newPercent) > 100:
                     calc = 0
             if not calc:
-                newPercent = abs(settings.lastPercent) * (1 - abs(percent / 100.0))
+                newPercent = abs(state.prevPercent) * (1 - abs(percent / 100.0))
                 if negative:
                     newPercent = newPercent * - 1
 
-            settings.lastPercent = newPercent
+            state.prevPercent = newPercent
             percent = 1 - abs(newPercent) / 100
 
             if newPercent < 0:
                 percent = percent * -1
 
         else:
-            percent = settings.lastPercent + percent
-            settings.lastPercent = percent
+            percent = state.prevPercent + percent
+            state.prevPercent = percent
             percent = percent / 100.0
     else:
         percent = percent / 100.0
@@ -1061,7 +1372,7 @@ def updateKeys(percent=None):
         blendDownPercent = 0
 
 
-    mode = settings.mode
+    mode = settings.mode.lower()
     # Force mode to average if percent is zero and reset on apply is set
     # and it is relative. This forces the key to the middle of the
     # surrounding keys when zero is pressed - like a reset button. Which
@@ -1069,51 +1380,38 @@ def updateKeys(percent=None):
     # take this out if it just doesn't feel consistent enough.
     fakeReset = percent == 0.0 and settings.resetOnApply and not settings.absolute and mode == 'Blend'
     if fakeReset:
-        mode = 'Average'
+        mode = 'average'
+        percent = 1
 
-    canShrink = True
-    for attr in settings.keys.keys():
-        keyVal = blendDownPercent * settings.keys[attr][0]['value'] + blendUpPercent * settings.keys[attr][-1]['value']
+    for segment in state.segmentCollection.segments:
 
-        startKey = settings.keys[attr][0]
-        endKey = settings.keys[attr][-1]
-        for key in range(1, len(settings.keys[attr]) - 1):
-            # Skip fake resets on end keys - they won't behave as the user expects (Halving the end key values instead of zeroing them)
-            if fakeReset and ((key == 1 and settings.keys[attr][key - 1]['endKey']) or (key == len(settings.keys[attr]) - 2) and settings.keys[attr][key + 1]['endKey']):
-                percent = 0
-            elif fakeReset:
-                percent = 1
+        neighborAvg = (segment.neighborLeft.value + segment.neighborRight.value) / 2.0
+        keyVal = blendDownPercent * segment.neighborLeft.value + blendUpPercent * segment.neighborRight.value
+        for key in segment.keys:
+            # Skip fake resets on end keys - they won't behave as the
+            # user expects (Halving the end x values instead of zeroing
+            # them)
+            if fakeReset and key.isLast() or key.isFirst():
+                continue
 
-            midKey = settings.keys[attr][key]
-            if mode == 'Blend':
-                keyValFin = midKey['value'] * (1 - abs(percent)) + keyVal
-            elif mode == 'Average':
-                keyValFin = midKey['value'] * (1 - percent) + ((startKey['value'] + endKey['value']) / 2) * percent
-            elif mode == 'Default':
-                keyValFin = midKey['value'] * (1 - percent) + midKey['default'] * percent
-            elif mode == 'Shrink':
-                if midKey['shrink']:
-                    keyValFin = midKey['value'] * (1 - percent) + midKey['shrink'] * percent
-                else:
-                    canShrink = False
-                    break
-            elif mode == 'Level':
-                keyValFin = midKey['value'] * (1 - percent) + midKey['level'] * percent
-            elif mode == 'Linear':
-                keyValFin = midKey['value'] * (1 - percent) + midKey['linear'] * percent
-
-            cmd.keyframe(attr, a=1, valueChange=keyValFin, index=(midKey['key'], midKey['key']))
-            settings.keys[attr][key]['lastValue'] = keyValFin
+            keyValue = key.originalValue
             if settings.resetOnApply and not settings.absolute:
-                settings.keys[attr][key]['value'] = keyValFin
-        if not canShrink:
-            break
+                keyValue = key.value
 
-    # Raise warning ONCE if shrink won't work for selection
-    if not canShrink and not settings.shrinkWarning:
-        om.MGlobal.displayWarning('Shrink will not work for this selection.  Select the same number of keys for every attribute for shrink to work.')
-        settings.shrinkWarning = True
+            if mode == 'blend':
+                newValue = keyValue * (1 - abs(percent)) + keyVal
+            elif mode == 'average':
+                newValue = keyValue * (1 - percent) + neighborAvg * percent
+            elif mode == 'default':
+                newValue = keyValue * (1 - percent) + segment.curve.defaultValue * percent
+            elif mode == 'shrink':
+                newValue = keyValue * (1 - percent) + key.shrinkValue * percent
+            elif mode == 'level':
+                newValue = keyValue * (1 - percent) + state.segmentCollection.levelValue * percent
+            elif mode == 'linear':
+                newValue = keyValue * (1 - percent) + key.linearValue * percent
+            key.value = newValue
+
 
 if __name__ == '__main__':
-    sak = SlideAnimationKeys()
-    sak.ui()
+    ui()
