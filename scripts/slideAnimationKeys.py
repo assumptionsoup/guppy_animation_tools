@@ -35,8 +35,7 @@ import maya.cmds as cmd
 import maya.OpenMaya as om
 import pymel.core as pm
 
-from guppy_animation_tools import selectedAttributes, getLogger, utils
-from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
+from guppy_animation_tools import selectedAttributes, getLogger
 
 
 _log = getLogger(__name__)
@@ -44,7 +43,7 @@ _log = getLogger(__name__)
 
 # From python 3.5 docs, isclose()
 def isFloatClose(a, b, rel_tol=1e-09, abs_tol=0.0):
-    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
 class PersistentSettings(object):
@@ -140,7 +139,7 @@ class GlobalState(object):
         # Delete Me
         self.buildingSettings = False
         self.uiControl = {}
-        self.segmentCollection = None
+        self.segmentCollection = SegmentCollection()
 
 
 state = GlobalState()
@@ -670,7 +669,7 @@ def setSettings(controlValue, toggle=None):
 
 def updateSliderGui(value=None, fromField=None):
     if 'slider' in state.uiControl and 'sliderField' in state.uiControl:
-        if value == None:
+        if value is None:
             if fromField == 'sliderField':
                 if cmd.intField(state.uiControl['sliderField'], ex=1):
                     value = cmd.intField(state.uiControl['sliderField'], q=1, v=1)
@@ -721,7 +720,7 @@ def setSlide(value, apply=None, qp=None, update=1):
 
 def hotkey(value=None, update=0):
     # This is a wrapper for setSlide, to make the call more intuitive.
-    if value == None:
+    if value is None:
         # Test if value can be had from gui.
         value = updateSliderGui()
 
@@ -984,7 +983,6 @@ class SegmentKey(Key):
         try:
             self._cache['originalValue']
         except KeyError:
-            # print 'caching original value'
             self._cache['originalValue'] = self.value
         return self._cache['originalValue']
 
@@ -1009,6 +1007,7 @@ class SegmentKey(Key):
         except AttributeError:
             raise ValueError('Key/Segment is not linked to collection.  '
                              'Cannot find linear value.')
+
     @property
     def shrinkValue(self):
         try:
@@ -1039,7 +1038,7 @@ class CurveSegment(object):
     def __init__(self, curve, keys, collection=None):
         self.collection = collection
         self.curve = curve
-        self.keys = [SegmentKey(key, segment=self) for key in keys]
+        self.keys = tuple(SegmentKey(key, segment=self) for key in keys)
         self._cache = {}
 
         # Find neighboring keys
@@ -1167,7 +1166,6 @@ class SegmentCollection(object):
             return
 
         for segment in self.segments:
-            print segment.curve.name
             for key in segment.keys:
                 time = key.time
                 try:
@@ -1181,6 +1179,7 @@ class SegmentCollection(object):
     def hasSelectionChanged(self, otherCollection):
         if len(otherCollection.segments) != len(self.segments):
             # Different number of curves selected
+            _log.debug('hasSelectionChanged: Segment number mismatch')
             return True
 
         def curveSegmentMap(collection):
@@ -1198,14 +1197,14 @@ class SegmentCollection(object):
 
         if set(otherSegmentMap.iterkeys()) != set(thisSegmentMap.iterkeys()):
             # Different attributes / curves selected
-            print 'curve name mismatch'
+            _log.debug('hasSelectionChanged: Curve name mismatch')
             return True
 
         for curveName in otherSegmentMap.iterkeys():
             otherSegments = otherSegmentMap[curveName]
             theseSegments = thisSegmentMap[curveName]
             if len(otherSegments) != len(theseSegments):
-                print 'num segments mismatch'
+                _log.debug('hasSelectionChanged: Segments number mismatch')
                 return True
 
             for x in xrange(len(otherSegments)):
@@ -1214,15 +1213,15 @@ class SegmentCollection(object):
 
                 if [k.index for k in otherSegment.keys] != [k.index for k in thisSegment.keys]:
                     # Different keys selected
-                    print 'key index mismatch'
+                    _log.debug('hasSelectionChanged: Key index mismatch')
                     return True
                 for x in xrange(len(otherSegment.keys)):
                     if not isFloatClose(otherSegment.keys[x].value, thisSegment.keys[x].value):
                         # Key values do not align with cached state
-                        print 'key value mismatch', otherSegment.curve.name, 'current value of',
-                        print thisSegment.keys[x].value, 'does not match cached value of',
-                        print otherSegment.keys[x].value
+                        _log.debug('hasSelectionChanged: key values mismatch')
                         return True
+        _log.debug('hasSelectionChanged: No change.')
+        return False
 
     @property
     def levelValue(self):
@@ -1378,7 +1377,7 @@ def updateKeys(percent=None):
     # surrounding keys when zero is pressed - like a reset button. Which
     # zero is always supposed to mean.  In my mind.  And tool :D I might
     # take this out if it just doesn't feel consistent enough.
-    fakeReset = percent == 0.0 and settings.resetOnApply and not settings.absolute and mode == 'Blend'
+    fakeReset = isFloatClose(percent, 0.0) and settings.resetOnApply and not settings.absolute and mode == 'blend'
     if fakeReset:
         mode = 'average'
         percent = 1

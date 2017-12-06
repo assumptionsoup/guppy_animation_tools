@@ -49,7 +49,6 @@ __all__ = [
     'selectedAttributes',
     'slideAnimationKeys',
     'zeroSelection',
-    'guppyInstaller',
     'renameIt']
 _logRegister = {}
 _logLevels = {}
