@@ -27,6 +27,7 @@
 
 __version__ = '2.0'
 from functools import partial
+from itertools import izip
 import collections
 import copy
 import textwrap
@@ -1022,6 +1023,21 @@ class SegmentKey(Key):
         # named curve
         return hash('%s - %s' % (self.index, self.segment.curve.name))
 
+    def isEquivalent(self, other):
+        if not isinstance(other, SegmentKey):
+            raise NotImplementedError
+
+        if self.curve.name != other.curve.name:
+            _log.debug('Keys curve mismatch %s %s', self, other)
+            return False
+        if self.index != other.index:
+            _log.debug('Keys index mismatch %s %s', self, other)
+            return False
+        if not isFloatClose(self.value, other.value):
+            _log.debug('Keys value mismatch %s %s', self, other)
+            return False
+        return True
+
 
 class CurveSegment(object):
     '''
@@ -1105,6 +1121,25 @@ class CurveSegment(object):
                                 eval=True, absolute=True, t=(time, time))[0]
             return value
 
+    def isEquivalent(self, other):
+        # Different from __eq__ - we only test that the key indexes and
+        # current values match - not the original context
+        if not isinstance(other, CurveSegment):
+            raise NotImplementedError
+
+        if self.curve.name != other.curve.name:
+            return False
+
+        if len(self.keys) != len(other.keys):
+            _log.debug('Segment num keys mismatch')
+            return False
+
+        for thisKey, otherKey in izip(self.keys, other.keys):
+            if not thisKey.isEquivalent(otherKey):
+                _log.debug('Segment key equivalence mismatch')
+                return False
+        return True
+
 
 class SegmentCollection(object):
     '''
@@ -1176,8 +1211,8 @@ class SegmentCollection(object):
 
                 self._cache['shrinkValues'][key] = shrinkValue
 
-    def hasSelectionChanged(self, otherCollection):
-        if len(otherCollection.segments) != len(self.segments):
+    def hasSelectionChanged(self, other):
+        if len(other.segments) != len(self.segments):
             # Different number of curves selected
             _log.debug('hasSelectionChanged: Segment number mismatch')
             return True
@@ -1192,7 +1227,7 @@ class SegmentCollection(object):
                 segments.sort(key=lambda segment: segment.keys[0].index)
             return segmentMap
 
-        otherSegmentMap = curveSegmentMap(otherCollection)
+        otherSegmentMap = curveSegmentMap(other)
         thisSegmentMap = curveSegmentMap(self)
 
         if set(otherSegmentMap.iterkeys()) != set(thisSegmentMap.iterkeys()):
@@ -1207,19 +1242,11 @@ class SegmentCollection(object):
                 _log.debug('hasSelectionChanged: Segments number mismatch')
                 return True
 
-            for x in xrange(len(otherSegments)):
-                otherSegment = otherSegments[x]
-                thisSegment = theseSegments[x]
-
-                if [k.index for k in otherSegment.keys] != [k.index for k in thisSegment.keys]:
-                    # Different keys selected
-                    _log.debug('hasSelectionChanged: Key index mismatch')
+            for thisSegment, otherSegment in izip(theseSegments, otherSegments):
+                if not thisSegment.isEquivalent(otherSegment):
+                    _log.debug('hasSelectionChanged: segment equivalence mismatch')
                     return True
-                for x in xrange(len(otherSegment.keys)):
-                    if not isFloatClose(otherSegment.keys[x].value, thisSegment.keys[x].value):
-                        # Key values do not align with cached state
-                        _log.debug('hasSelectionChanged: key values mismatch')
-                        return True
+
         _log.debug('hasSelectionChanged: No change.')
         return False
 
