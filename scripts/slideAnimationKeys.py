@@ -692,7 +692,7 @@ def startSlide(slideValue):
 
     if settings.realtime and settings.absolute:
         loadKeys()
-        updateKeys()
+        updateKeys(float(cmd.intSlider(state.uiControl['slider'], q=1, v=1)))
     state.sliding = True
 
 
@@ -738,7 +738,7 @@ def setMode(mode):
 
     # Update stuff according to UI change.
     if settings.realtime and settings.absolute:
-        updateKeys()
+        updateKeys(float(cmd.intSlider(state.uiControl['slider'], q=1, v=1)))
         enableUndo()
 
 
@@ -1301,56 +1301,36 @@ def loadKeys(reload=False):
         updateSliderGui(0)
 
 
-def updateKeys(percent=None):
+def updateKeys(percent):
     global settings
     # Disable undo so setting multiple attributes don't rack up in the
     # undo queue
     disableUndo()
 
-    if percent is None:
-        percent = float(cmd.intSlider(state.uiControl['slider'], q=1, v=1))
-
-    if not settings.absolute and not settings.resetOnApply:
-        if percent == 0.0:  # Zero is meant to be a reset of sorts.  On relative mode I don't know why someone would want to move keys by 0,
-            state.prevPercent = 0.0  # so if they try to do this, they're probably attempting to reset things.
-        percent = state.prevPercent + percent
-        state.prevPercent = percent
-
     percent = percent / 100.0
 
     blendUpPercent = percent
-    blendDownPercent = percent
+    blendDownPercent = abs(percent)
     if percent < 0:
         blendUpPercent = 0
-        blendDownPercent *= -1
     else:
         blendDownPercent = 0
 
 
     mode = settings.mode.lower()
-    # Force mode to average if percent is zero and reset on apply is set
-    # and it is relative. This forces the key to the middle of the
-    # surrounding keys when zero is pressed - like a reset button. Which
-    # zero is always supposed to mean.  In my mind.  And tool :D I might
-    # take this out if it just doesn't feel consistent enough.
-    fakeReset = isFloatClose(percent, 0.0) and settings.resetOnApply and not settings.absolute and mode == 'blend'
-    if fakeReset:
-        mode = 'average'
-        percent = 1
 
     for segment in state.segmentCollection.segments:
 
         neighborAvg = (segment.neighborLeft.value + segment.neighborRight.value) / 2.0
         keyVal = blendDownPercent * segment.neighborLeft.value + blendUpPercent * segment.neighborRight.value
         for key in segment.keys:
-            # Skip fake resets on end keys - they won't behave as the
-            # user expects (Halving the end x values instead of zeroing
-            # them)
-            if fakeReset and key.isLast() or key.isFirst():
-                continue
 
             keyValue = key.originalValue
-            if settings.resetOnApply and not settings.absolute:
+            if not settings.absolute and not isFloatClose(percent, 0.0):
+                # Use the previous value when relative resetOnApply is active,
+                # EXCEPT when percent == 0.0 - in that case the user probably
+                # wants to reset back to the original values, as a "relative"
+                # percent of 0 would do nothing.
                 keyValue = key.value
 
             if mode == 'blend':
