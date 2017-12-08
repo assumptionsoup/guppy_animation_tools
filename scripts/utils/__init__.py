@@ -23,18 +23,50 @@ import functools
 import pymel.core as pm
 
 import guppy_animation_tools.utils.ui
+import guppy_animation_tools.utils.observer
 
 
-__all__ = ['ui']
+__all__ = ['ui', 'decorator', 'observer']
 
-######### Uncategorized Functions ############
-#########                         ############
 
+
+def copyFunctionToClipboard(moduleName, functionName):
+    '''
+    Returns the full text required to import the given fully qualified module
+    and run the given function.  Useful to aid users in scripting / setting
+    hotkeys for actions they perform frequently.
+
+    Ex:
+        >>> copyFunctionToClipboard('guppy_animation_tools.moveMyObjects', 'savePosition()')
+        from guppy_animation_tools import moveMyObjects
+        moveMyObjects.savePosition()
+    '''
+    from guppy_animation_tools.utils.qt import QtWidgets
+    clipboard = QtWidgets.QApplication.clipboard()
+    modules = moduleName.rsplit('.', 1)
+
+    if len(modules) == 1:
+        importText = 'import %s' % moduleName
+        module = moduleName
+    else:
+        importText = 'from {0} import {1}'.format(*modules)
+        module = modules[-1]
+
+    clipboard.setText((
+        '{importText}\n'
+        '{module}.{function}').format(
+        importText=importText, module=module, function=functionName))
+
+
+##  Context Managers ##
 class UndoChunk(object):
     '''
     Context manager to group all following commands into a single undo
     "chunk".
     '''
+    def __init__(self):
+        self.isOpen = False
+
     def __enter__(self):
         try:
             pm.undoInfo(openChunk=1)
@@ -59,9 +91,6 @@ class MaintainSelection(object):
     Context manager that maintains / restores selection once the context
     exits.
     '''
-    def __init__(self):
-        self.selection = []
-
     def __enter__(self):
         self.selection = pm.ls(selection=1)
         return self
@@ -71,35 +100,3 @@ class MaintainSelection(object):
         # https://github.com/LumaPictures/pymel/commit/5c141874ade4fee5fb892507d47f2ed5dbddeb33
         selection = [node for node in self.selection if pm.objExists(node)]
         pm.select(selection)
-
-
-# from https://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
-class memoized(object):
-    '''
-    Decorator. Caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned
-    (not reevaluated).
-    '''
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-
-    def __call__(self, *args):
-        if not isinstance(args, collections.Hashable):
-            # uncacheable. a list, for instance.
-            # better to not cache than blow up.
-            return self.func(*args)
-        if args in self.cache:
-            return self.cache[args]
-        else:
-            value = self.func(*args)
-            self.cache[args] = value
-            return value
-
-    def __repr__(self):
-        '''Return the function's docstring.'''
-        return self.func.__doc__
-
-    def __get__(self, obj, objtype):
-        '''Support instance methods.'''
-        return functools.partial(self.__call__, obj)

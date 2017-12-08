@@ -21,32 +21,17 @@ nodes and later apply those positions to the same nodes, or new ones.
     You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-''''''*************************************************************************
-
-    Author:........Jordan Hueckstaedt
-    Website:.......RubberGuppy.com
-    Email:.........AssumptionSoup@gmail.com
-
-****************************************************************************'''
+'''
 
 from functools import partial
 
 import pymel.core as pm
-import guppy_animation_tools as gat
-from guppy_animation_tools import utils
+
+from guppy_animation_tools import getLogger, utils
 from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
 
-try:
-    import shiboken
-except ImportError:
-    import shiboken2 as shiboken
 
-try:
-    _globalQtObjects
-except NameError:
-    _globalQtObjects = {}
-
-_log = gat.getLogger(__name__)
+_log = getLogger(__name__)
 
 
 def duplicateGroup(obj, name):
@@ -319,33 +304,6 @@ class MoveMyObjects(object):
         self.applyPositions()
 
 
-def copyFunctionToClipboard(moduleName, functionName):
-    '''
-    Returns the full text required to import the given fully qualified module
-    and run the given function.  Useful to aid users in scripting / setting
-    hotkeys for actions they perform frequently.
-
-    Ex:
-        >>> copyFunctionToClipboard('guppy_animation_tools.moveMyObjects', 'savePosition()')
-        from guppy_animation_tools import moveMyObjects
-        moveMyObjects.savePosition()
-    '''
-    clipboard = QtWidgets.QApplication.clipboard()
-    modules = moduleName.rsplit('.', 1)
-
-    if len(modules) == 1:
-        importText = 'import %s' % moduleName
-        module = moduleName
-    else:
-        importText = 'from {0} import {1}'.format(*modules)
-        module = modules[-1]
-
-    clipboard.setText((
-        '{importText}\n'
-        '{module}.{function}').format(
-        importText=importText, module=module, function=functionName))
-
-
 # Create global state/controller object so that positions are remembered
 # between calls. This seems like weird design, but remember, many
 # animators like saving commands to hotkeys, the simpler the final call
@@ -356,7 +314,10 @@ except NameError:
     _globalController = MoveMyObjects()
 
 
-class MoveMyObjectsWidget(QtWidgets.QWidget):
+RightClickButton = utils.ui.RightClickWidgetFactory(QtWidgets.QPushButton)
+
+
+class MoveMyObjectsWidget(utils.ui.PersistentWidget):
     controller = _globalController
 
     def __init__(self, parent=None):
@@ -372,6 +333,7 @@ class MoveMyObjectsWidget(QtWidgets.QWidget):
         # returns.
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         QtWidgets.QShortcut(QtGui.QKeySequence("Esc"), self, self.close)
+        self.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.update()
 
     def update(self):
@@ -411,8 +373,8 @@ class MoveMyObjectsWidget(QtWidgets.QWidget):
 
     def _buildLayout(self):
         self.setWindowTitle("Move My Objects")
-        self.savePositionsButton = utils.ui.RightClickButton("Save Positions")
-        self.applyPositionsButton = utils.ui.RightClickButton("Apply Positions")
+        self.savePositionsButton = RightClickButton("Save Positions")
+        self.applyPositionsButton = RightClickButton("Apply Positions")
         self.setLayout(QtWidgets.QHBoxLayout())
         self.setMinimumWidth(150)
         self.layout().addWidget(self.savePositionsButton)
@@ -445,31 +407,14 @@ class MoveMyObjectsWidget(QtWidgets.QWidget):
         copyAction = menu.addAction("Copy action to clipboard")
         clickedAction = menu.exec_(QtGui.QCursor.pos())
         if clickedAction == copyAction:
-            copyFunctionToClipboard(__name__, functionName)
+            utils.copyFunctionToClipboard(__name__, functionName)
             _log.info("Copied action to clipboard! Paste it into the python "
                 "script editor or python hotkey.")
 
 
 def ui(refresh=False):
     '''Ui launcher'''
-    global _globalQtObjects
-    if refresh:
-        # Close and remove widget, so we can test a new one.
-        try:
-            mmw = _globalQtObjects.pop('move_objects_widget')
-        except KeyError, RuntimeError:
-            pass
-        else:
-            # Our widget gets deleted on close, watch out!
-            if shiboken.isValid(mmw):
-                mmw.close()
-
-    # Prevent GC
-    mmw = _globalQtObjects.get('move_objects_widget')
-    if mmw is None or not shiboken.isValid(mmw):
-        mmw = _globalQtObjects['move_objects_widget'] = MoveMyObjectsWidget()
-    mmw.show()
-    mmw.raise_()
+    utils.ui.showWidget('move_objects_widget', MoveMyObjectsWidget, refresh=refresh)
 
 
 def savePositions():
