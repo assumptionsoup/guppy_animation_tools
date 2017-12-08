@@ -51,47 +51,75 @@ __all__ = [
     'zeroSelection',
     'renameIt']
 _logRegister = {}
-_logLevels = {}
-_debugOn = False
+
+
+class LogManager(object):
+    '''
+    Manager to help toggle states on loggers
+    '''
+    def __init__(self, logger, name):
+        self.logger = logger
+        self.name = name
+        self._previousLevel = None
+
+    def isDebugging(self):
+        return self.logger.level == plogging.DEBUG
+
+    def setLevel(self, level):
+        self._previousLevel = self.logger.level
+        self.logger.setLevel(level)
+
+    def restoreLevel(self):
+        if self._previousLevel is not None:
+            self.logger.setLevel(self._previousLevel)
+        self._previousLevel = None
+
+    def toggleDebug(self):
+        if self.isDebugging():
+            self.restoreLevel()
+        else:
+            self.setLevel(plogging.DEBUG)
+
+    @classmethod
+    def create(cls, name):
+        logger = plogging.getLogger(name)
+        logger = plogging.getLogger(name)
+        logger.setLevel(logger.INFO)
+        return cls(logger, name)
 
 
 def getLogger(name):
     if 'guppy_animation_tools' in name:
         name = name.replace('guppy_animation_tools', 'gat', 1)
     if name not in _logRegister:
-        log = plogging.getLogger(name)
-        log.setLevel(log.INFO)
-        _logRegister[name] = log
+        _logRegister[name] = LogManager.create(name)
 
-    return _logRegister[name]
+    return _logRegister[name].logger
 
 
 def setLoggerLevels(level, namespaces=None):
     if namespaces is None:
         namespaces = _logRegister.keys()
 
-    if _logLevels:
-        namespaces = [n for n in _logLevels.iterkeys() if n not in namespaces]
+    for name in namespaces:
+        _logRegister[name].setLevel(level)
+
+
+def restoreLoggerLevels(namespaces=None):
+    global _logLevels
+    if namespaces is None:
+        namespaces = _logRegister.keys()
 
     for name in namespaces:
-        _logLevels[name] = _logRegister[name].level
-        _logRegister[name].setLevel(level)
-
-
-def restoreLoggerLevels():
-    global _logLevels
-    for name, level in _logLevels.iteritems():
-        _logRegister[name].setLevel(level)
+        _logRegister[name].restoreLevel()
     _logLevels = {}
 
 
-def toggleDebug():
-    global _debugOn
-    if _debugOn:
-        restoreLoggerLevels()
-    else:
-        setLoggerLevels(plogging.DEBUG)
-    _debugOn = not _debugOn
+def toggleDebug(namespaces=None):
+    if namespaces is None:
+        namespaces = _logRegister.keys()
+    for name in namespaces:
+        _logRegister[name].toggleDebug()
 
 
 def _addToPath(env, newLocation):
