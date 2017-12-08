@@ -229,5 +229,13 @@ def showWidget(key, widgetType, refresh=False):
     widget = _globalQtObjects.get(key)
     if widget is None or not shiboken.isValid(widget):
         widget = _globalQtObjects[key] = widgetType()
-    widget.show()
-    widget.raise_()
+    try:
+        widget.show()
+        widget.raise_()
+    except RuntimeError:
+        # PySide-1 has a propensity to LIE that a widget
+        # is still valid in C++ land. so we'll try
+        # ONE MORE TIME
+        widget = _globalQtObjects[key] = widgetType()
+        widget.show()
+        widget.raise_()
