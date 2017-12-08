@@ -45,7 +45,7 @@ class PersistentSettings(object):
 
     Uses pm.env.optionVars under the hood which may lead to some quirkieness.
     '''
-    modes = ('blend', 'average', 'default', 'shrink', 'level', 'linear')
+    modes = ('blend', 'shift', 'average', 'default', 'shrink', 'level', 'linear')
     _attrBindings = {
         'mode': 'jh_sak_mode',
         'showSlider': 'jh_sak_showSlider',
@@ -816,28 +816,41 @@ class SlideKeysController(object):
 
         percent = percent / 100.0
 
+        def getKeyValue(key):
+            if not absolute:
+                return key.value
+            else:
+                # If relative values have been used, we should use
+                # those as our starting value - preventing an
+                # absolute value move from jumping around (because
+                # relative mode works off the current value, it can
+                # move keys in ways that absolute sliding can't)
+                return self._relativeValueCache.get(key, key.originalValue)
+
+
         for segment in self._segmentCollection.segments:
-
-            neighborAvg = (segment.neighborLeft.value + segment.neighborRight.value) / 2.0
-            for key in segment.keys:
-
-                if not absolute:
-                    keyValue = key.value
+            # Segment level calculations
+            if self._mode == 'average':
+                averageGoal = (segment.neighborLeft.value + segment.neighborRight.value) / 2.0
+            if self._mode == 'shift':
+                # Find the difference between the end keys and their neighbors
+                # Use that to shift all keys by that amount.
+                if percent < 0:
+                    shiftGoal = segment.neighborLeft.value - getKeyValue(segment.keys[0])
                 else:
-                    # If relative values have been used, we should use
-                    # those as our starting value - preventing an
-                    # absolute value move from jumping around (because
-                    # relative mode works off the current value, it can
-                    # move keys in ways that absolute sliding can't)
-                    keyValue = self._relativeValueCache.get(key, key.originalValue)
+                    shiftGoal = segment.neighborRight.value - getKeyValue(segment.keys[-1])
 
+            for key in segment.keys:
+                # Find the goal we will lerp to
                 if self._mode == 'blend':
                     if percent < 0:
                         goalValue = segment.neighborLeft.value
                     else:
                         goalValue = segment.neighborRight.value
+                elif self._mode == 'shift':
+                    goalValue = getKeyValue(key) + shiftGoal
                 elif self._mode == 'average':
-                    goalValue = neighborAvg
+                    goalValue = averageGoal
                 elif self._mode == 'default':
                     goalValue = key.defaultValue
                 elif self._mode == 'shrink':
@@ -847,7 +860,9 @@ class SlideKeysController(object):
                 elif self._mode == 'linear':
                     goalValue = key.linearValue
 
-                if self._mode == 'blend':
+                keyValue = getKeyValue(key)
+                # Lerp to goal.
+                if self._mode in ('blend', 'shift'):  # Non-negative lerps
                     newValue = keyValue * (1 - abs(percent)) + goalValue * abs(percent)
                 else:
                     newValue = keyValue * (1 - percent) + goalValue * percent
