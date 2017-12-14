@@ -655,6 +655,7 @@ class SlideAnimationKeysWidget(internal.ui.BubblingMenuFactory(internal.ui.Persi
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
     def _buildLayout(self):
+        self.setWindowTitle("Slide Animation Keys")
         self.sliderWidget = SliderWidget()
 
         self.confirmContainer = QtWidgets.QWidget()
