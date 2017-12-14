@@ -29,8 +29,8 @@ except ImportError:
 import maya.OpenMayaUI as omUI
 
 import guppy_animation_tools as gat
-from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
-from guppy_animation_tools.utils.decorator import memoized
+from guppy_animation_tools.internal.qt import QtCore, QtGui, QtWidgets
+from guppy_animation_tools.internal.decorator import memoized
 
 
 _log = gat.getLogger(__name__)

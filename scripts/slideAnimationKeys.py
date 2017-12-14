@@ -28,7 +28,7 @@ import copy
 
 import pymel.core as pm
 
-from guppy_animation_tools import selectedAttributes, getLogger, utils
+from guppy_animation_tools import selectedAttributes, getLogger, internal
 
 
 _log = getLogger(__name__)
@@ -663,11 +663,11 @@ class SlideKeysController(object):
         self._absolutePercent = 0.0  # 0-100, not 0-1
         self._isSliding = False
         self._segmentCollection = SegmentCollection()
-        self._undoChunk = utils.UndoChunk()
+        self._undoChunk = internal.UndoChunk()
         self._relativeValueCache = {}
         self.settings = _settings
         self._mode = self.settings.mode.lower()
-        self.dispatcher = utils.observer.Dispatcher()
+        self.dispatcher = internal.observer.Dispatcher()
 
 
     @property

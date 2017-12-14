@@ -20,7 +20,7 @@ A very basic observer pattern implementation.
 
 '''
 
-from guppy_animation_tools.utils import decorator
+from guppy_animation_tools.internal import decorator
 from guppy_animation_tools import getLogger
 
 

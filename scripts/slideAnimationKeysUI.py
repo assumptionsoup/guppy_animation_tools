@@ -23,9 +23,8 @@ Slide Animation Keys is a tool that allows animators to quickly adjust keys.
 
 from functools import partial
 
-from guppy_animation_tools import getLogger, utils, slideAnimationKeys
-from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
-
+from guppy_animation_tools import getLogger, internal, slideAnimationKeys
+from guppy_animation_tools.internal.qt import QtCore, QtGui, QtWidgets
 
 _controller = slideAnimationKeys.controller
 
@@ -138,7 +137,7 @@ class ToggleFrame(CheckBoxFrame):
 
         # True up checkbox state in case this function was called
         # directly, and not through a signal.
-        with utils.ui.SignalBlocker(self.checkbox):
+        with internal.ui.SignalBlocker(self.checkbox):
             self.checkbox.setChecked(state)
 
     def isEnabled(self):
@@ -194,7 +193,7 @@ class StackedWidgets(QtCore.QObject):
         return self._index
 
 
-class QuickPickButton(utils.ui.BubblingMenuFactory(QtWidgets.QPushButton)):
+class QuickPickButton(internal.ui.BubblingMenuFactory(QtWidgets.QPushButton)):
     '''
     A single quick pick button widget.
     '''
@@ -236,7 +235,7 @@ class QuickPickButton(utils.ui.BubblingMenuFactory(QtWidgets.QPushButton)):
         action = super(QuickPickButton, self).rightClickMenu(menu=menu)
 
         if action == copyAction:
-            utils.copyFunctionToClipboard(
+            internal.copyFunctionToClipboard(
                 slideAnimationKeys.__name__, 'hotkey(%d)' % self.value())
             _log.info("Copied action to clipboard! Paste it into the python "
                       "script editor or python hotkey.")
@@ -244,7 +243,7 @@ class QuickPickButton(utils.ui.BubblingMenuFactory(QtWidgets.QPushButton)):
         return action
 
 
-class QuickPickEdit(utils.ui.BubblingMenuFactory(QtWidgets.QLineEdit)):
+class QuickPickEdit(internal.ui.BubblingMenuFactory(QtWidgets.QLineEdit)):
     '''
     The edit field for quick picks when in configuration mode.
     '''
@@ -293,7 +292,7 @@ class QuickPickEdit(utils.ui.BubblingMenuFactory(QtWidgets.QLineEdit)):
         return action
 
 
-class QuickPicksWidget(utils.ui.BubblingMenuFactory(QtWidgets.QWidget)):
+class QuickPicksWidget(internal.ui.BubblingMenuFactory(QtWidgets.QWidget)):
     '''
     Widget for all quick pick buttons.
 
@@ -466,7 +465,7 @@ class QuickPicksWidget(utils.ui.BubblingMenuFactory(QtWidgets.QWidget)):
         return action
 
 
-class SliderWidget(utils.ui.BubblingMenuFactory(QtWidgets.QFrame)):
+class SliderWidget(internal.ui.BubblingMenuFactory(QtWidgets.QFrame)):
     '''
     The slider widget for sliding keys.
 
@@ -579,7 +578,7 @@ class SliderWidget(utils.ui.BubblingMenuFactory(QtWidgets.QFrame)):
         self.stack.setCurrentIndex(int(self._configuringUI))
 
 
-class ModeWidget(utils.ui.BubblingMenuFactory(QtWidgets.QWidget)):
+class ModeWidget(internal.ui.BubblingMenuFactory(QtWidgets.QWidget)):
     '''
     The mode selector widget.
     '''
@@ -632,7 +631,7 @@ class ModeWidget(utils.ui.BubblingMenuFactory(QtWidgets.QWidget)):
         action = super(ModeWidget, self).rightClickMenu(menu=menu)
 
         if action == copyAction:
-            utils.copyFunctionToClipboard(
+            internal.copyFunctionToClipboard(
                 slideAnimationKeys.__name__, 'setMode(%r)' % self.getMode())
             _log.info("Copied action to clipboard! Paste it into the python "
                       "script editor or python hotkey.")
@@ -640,7 +639,7 @@ class ModeWidget(utils.ui.BubblingMenuFactory(QtWidgets.QWidget)):
         return action
 
 
-class SlideAnimationKeysWidget(utils.ui.BubblingMenuFactory(utils.ui.PersistentWidget)):
+class SlideAnimationKeysWidget(internal.ui.BubblingMenuFactory(internal.ui.PersistentWidget)):
     '''
     The main widget / window for slide animation keys
     '''
@@ -812,7 +811,7 @@ def ui(refresh=False):
     '''
     Launch the UI for slide animation keys.
     '''
-    utils.ui.showWidget('slide_animation_keys_widget',
+    internal.ui.showWidget('slide_animation_keys_widget',
                         SlideAnimationKeysWidget,
                         refresh=refresh)
 

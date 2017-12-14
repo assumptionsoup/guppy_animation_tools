@@ -27,8 +27,8 @@ from functools import partial
 
 import pymel.core as pm
 
-from guppy_animation_tools import getLogger, utils
-from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
+from guppy_animation_tools import getLogger, internal
+from guppy_animation_tools.internal.qt import QtCore, QtGui, QtWidgets
 
 
 _log = getLogger(__name__)
@@ -61,7 +61,7 @@ def getNodePositions(nodes):
     positions = []
 
     # Stop undo, so this doesn't get annoying for artist
-    with utils.UndoChunk(), utils.MaintainSelection():
+    with internal.UndoChunk(), internal.MaintainSelection():
 
         # Create tempgroup and parent constrain it to object to get position
         # Maya likes this approach better
@@ -99,7 +99,7 @@ def applyNodePositions(matrices, nodes):
     '''
 
     # Stop undo, so this doesn't get annoying for artist
-    with utils.UndoChunk(), utils.MaintainSelection():
+    with internal.UndoChunk(), internal.MaintainSelection():
 
         # create temporary group outside of loop
         positionGroup = pm.group(n='mmo_applyPos_tmpGrp', em=1)
@@ -314,10 +314,10 @@ except NameError:
     _globalController = MoveMyObjects()
 
 
-RightClickButton = utils.ui.RightClickWidgetFactory(QtWidgets.QPushButton)
+RightClickButton = internal.ui.RightClickWidgetFactory(QtWidgets.QPushButton)
 
 
-class MoveMyObjectsWidget(utils.ui.PersistentWidget):
+class MoveMyObjectsWidget(internal.ui.PersistentWidget):
     controller = _globalController
 
     def __init__(self, parent=None):
@@ -407,14 +407,14 @@ class MoveMyObjectsWidget(utils.ui.PersistentWidget):
         copyAction = menu.addAction("Copy action to clipboard")
         clickedAction = menu.exec_(QtGui.QCursor.pos())
         if clickedAction == copyAction:
-            utils.copyFunctionToClipboard(__name__, functionName)
+            internal.copyFunctionToClipboard(__name__, functionName)
             _log.info("Copied action to clipboard! Paste it into the python "
                 "script editor or python hotkey.")
 
 
 def ui(refresh=False):
     '''Ui launcher'''
-    utils.ui.showWidget('move_objects_widget', MoveMyObjectsWidget, refresh=refresh)
+    internal.ui.showWidget('move_objects_widget', MoveMyObjectsWidget, refresh=refresh)
 
 
 def savePositions():

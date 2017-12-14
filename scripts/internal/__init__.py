@@ -22,8 +22,8 @@ import functools
 
 import pymel.core as pm
 
-import guppy_animation_tools.utils.ui
-import guppy_animation_tools.utils.observer
+import guppy_animation_tools.internal.ui
+import guppy_animation_tools.internal.observer
 
 
 __all__ = ['ui', 'decorator', 'observer']
@@ -41,7 +41,7 @@ def copyFunctionToClipboard(moduleName, functionName):
         from guppy_animation_tools import moveMyObjects
         moveMyObjects.savePosition()
     '''
-    from guppy_animation_tools.utils.qt import QtWidgets
+    from guppy_animation_tools.internal.qt import QtWidgets
     clipboard = QtWidgets.QApplication.clipboard()
     modules = moduleName.rsplit('.', 1)
 
