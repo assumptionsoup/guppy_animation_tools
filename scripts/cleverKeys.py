@@ -10,7 +10,7 @@ keys whenever possible.  To use this module, call setKey()
 
 *******************************************************************************
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
 
     This program is free software: you can redistribute it and/or modify it
     under the terms of the GNU Lesser General Public License as published by
@@ -33,13 +33,6 @@ keys whenever possible.  To use this module, call setKey()
 
 *******************************************************************************
 '''
-
-__author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012-2014'
-__license__ = 'LGPL v3'
-__version__ = '1.08'
-__email__ = 'AssumptionSoup@gmail.com'
-__status__ = 'Production'
 
 import collections
 

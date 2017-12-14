@@ -5,7 +5,7 @@ The primary method associated with this module is the "get" method.'''
 
 '''****************************************************************************
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -25,12 +25,6 @@ The primary method associated with this module is the "get" method.'''
     Website:.......RubberGuppy.com
     Email:.........AssumptionSoup@gmail.com
 '''
-
-__author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012 Jordan Hueckstaedt'
-__license__ = 'LGPL v3'
-__version__ = '0.14'
-__email__ = 'AssumptionSoup@gmail.com'
 
 import maya.cmds as cmd
 import maya.OpenMaya as om
