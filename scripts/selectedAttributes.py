@@ -5,7 +5,7 @@ The primary method associated with this module is the "get" method.'''
 
 '''****************************************************************************
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -26,19 +26,16 @@ The primary method associated with this module is the "get" method.'''
     Email:.........AssumptionSoup@gmail.com
 '''
 
-__author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012 Jordan Hueckstaedt'
-__license__ = 'LGPL v3'
-__version__ = '0.14'
-__email__ = 'AssumptionSoup@gmail.com'
-__status__ = 'Production'
-
 import maya.cmds as cmd
 import maya.OpenMaya as om
 import maya.mel as mel
+import pymel.core as pm
+
+import guppy_animation_tools as gat
 
 # DEBUG methods
 DEBUG = 0
+_log = gat.getLogger(__name__)
 
 
 def toggleDebug():
@@ -81,6 +78,143 @@ def printCalled(fn):
 # The real methods
 
 
+class GraphEditorInfo(object):
+    '''
+    Encapsulates finding information about graph editors.
+    '''
+    # NOTE: Do not use pymel for UI objects. While in general PyMel is
+    #       GREAT for nodes, the UI portion of it has needed some love
+    #       for awhile now. UI objects don't appear to maintain state
+    #       correctly, and behave really weird.  Some commands return UI
+    #       objects while others still return strings.  It's a kind of a
+    #       mess.
+
+    def __init__(self, panelName):
+        self.panelName = panelName
+
+    @staticmethod
+    def _getPanelUnderCursor():
+        '''
+        Returns the name of the panel under the cursor
+        '''
+        try:
+            # May return None if no panel found
+            panel = cmd.getPanel(underPointer=True)
+        except TypeError:
+            # Maya is ...special.  Yes, I've had this fail on this line
+            # before. With a TypeError.  Maya told me underPointer
+            # needed to be passed a bool. Well, I hate to tell you Maya,
+            # but True is a bool.
+            _log.debug("Old maid Maya has lost her cursor again.")
+            panel = None
+        return panel
+
+    @staticmethod
+    def _getPanelWithFocus():
+        return cmd.getPanel(withFocus=True)
+
+    @staticmethod
+    def _isPanelVisible(panelName):
+        '''
+        Determines if the given panel is open. Minimized panels are
+        considered closed.
+        '''
+
+        # Sanity Check:
+        if not (panelName and cmd.scriptedPanel(panelName, query=True, exists=True)):
+            return False
+
+
+        # cmd.scriptedPanel does not provide a way to query what window
+        # it uses.  cmd.lsUI(windows=1) appears to be broken in maya
+        # 2018, only returning 'MayaWindow', even when more windows are
+        # open. Which means it's no longer possible to search for
+        # windows by name.  Therefore, the ONLY way to query a window
+        # AFAIK is the most fragile - to simply hope it's at the top
+        # level of the UI path (I suppose we might be able to trace it
+        # using QT, but that comes with the small risk of segfaulting
+        # instead of simply erroring).  So much for good coding
+        # standards. #ThanksMaya!
+
+        # Get full path to panel
+        panelPath = cmd.scriptedPanel(panelName, query=True, control=True)
+        if not panelPath:  # The docs say scriptedPanels may not have controls
+            return False   # But I don't realistically think this will happen.
+
+        # Use root path as window.
+        window = panelPath.split('|')[0]
+        if not window:
+            return False
+
+        # Return if the window is visible and not minimized.
+        return (cmd.window(window, query=True, visible=True) and
+                not cmd.window(window, query=True, iconify=True))
+
+    @staticmethod
+    def _isPanelGraphEditor(panelName):
+        return (
+            panelName and
+            cmd.getPanel(typeOf=panelName) == 'scriptedPanel' and
+            cmd.scriptedPanel(panelName, query=1, type=1) == 'graphEditor')
+
+    @classmethod
+    def detect(cls, restrictToCursor=False, restrictToFocus=False, restrictToVisible=False):
+        scriptedPanels = cmd.getPanel(type='scriptedPanel') or []
+        graphPanels = set(
+            panel for panel in scriptedPanels
+            if cmd.scriptedPanel(panel, query=True, type=True) == 'graphEditor')
+
+        focusedPanel = cls._getPanelWithFocus()
+        cursorPanel = cls._getPanelUnderCursor()
+
+        if restrictToFocus:
+            graphPanels = set([focusedPanel]) if focusedPanel in graphPanels else set()
+
+        if restrictToCursor:
+            graphPanels = set([cursorPanel]) if cursorPanel in graphPanels else set()
+
+        if restrictToVisible:
+            graphPanels = set(filter(cls._isPanelVisible, graphPanels))
+
+        graphPanel = None
+        if len(graphPanels) == 1:
+            graphPanel = graphPanels.pop()
+        elif len(graphPanels) > 1:
+            # Restrictions have not narrowed down a possibility
+            # Magical preference order kicks in here.
+            if focusedPanel in graphPanels:
+                graphPanel = focusedPanel
+            elif cursorPanel in graphPanels:
+                graphPanel = cursorPanel
+            else:
+                visiblePanels = filter(cls._isPanelVisible, graphPanels)
+                if visiblePanels:
+                    graphPanel = sorted(visiblePanels)[0]
+                else:
+                    graphPanel = sorted(graphPanels)[0]
+
+        return cls(graphPanel)
+
+    def isUnderCursor(self):
+        '''
+        Returns True if any graph editor is under the cursor.
+        '''
+        return self.isValid() and self._getPanelUnderCursor() == self.panelName
+
+    def isFocused(self):
+        return self.isValid() and self._getPanelWithFocus() == self.panelName
+
+    def isVisible(self):
+        '''
+        Determines this graph editor is open. Minimized graph editors
+        are considered closed.
+        '''
+        return self.isValid() and self._isPanelVisible(self.panelName)
+
+    def isValid(self):
+        return bool(self.panelName) and cmd.scriptedPanel(self.panelName, query=True, exists=True)
+
+
 @printCalled
 def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=False):
     '''Get selected attributes using the given detection type.
@@ -97,35 +231,24 @@ def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, use
     '''
 
     # Determine which attributes to grab.
-    useGraph, panel = useGraphAttributes(detectionType=detectionType)
+    if detectionType == 'cursor':
+        graphEditor = GraphEditorInfo.detect(restrictToCursor=True)
+    elif detectionType == 'panel':
+        graphEditor = GraphEditorInfo.detect(restrictToVisible=True)
+    else:
+        raise ValueError('%s is not a valid detection type.  Use "cursor" or "panel"' % detectionType)
 
     # Get selected attributes from the channelBox or graphEditor depending on where the cursor is.
-    if useGraph:
+    if graphEditor.isValid():
         # Pass list by reference
-        attributes = getGraphEditor(panel, useSelectedCurves=useSelectedCurves, animatableOnly=animatableOnly, usePartialCurveSelection=usePartialCurveSelection)
+        attributes = getGraphEditor(graphEditor,
+            useSelectedCurves=useSelectedCurves,
+            animatableOnly=animatableOnly,
+            usePartialCurveSelection=usePartialCurveSelection)
     else:
         attributes = getChannelBox(animatableOnly=animatableOnly)
 
     return attributes
-
-
-@printCalled
-def useGraphAttributes(detectionType='cursor'):
-    '''Determines whether to use the graph editor or not based on the detection
-    type'''
-
-    if detectionType.lower() == 'cursor':
-        # Find out if the graph editor is under cursor, and the
-        # graphPanel if it is
-        useGraphAttributes, panel = isGraphEditorActive()
-    elif detectionType.lower() == 'panel':
-        # Use the graph editor if it is open.
-        panel = findGraphEditorPanel()
-        useGraphAttributes = isGraphEditorVisible(panel) if panel else False
-    else:
-        raise Exception('%s is not a valid detection type.  Use "cursor" or "panel"' % detectionType)
-
-    return useGraphAttributes, panel
 
 
 def splitAttr(fullPath):
@@ -216,8 +339,9 @@ def getNonAnimatableAttributes(obj):
 
 
 @printCalled
-def filterSelectedToAttributes(selected, attributes, expandObjects, animatableOnly):
-    '''The real brains of the operation.  Filters the given objects/attributes
+def filterSelectedToAttributes(selected, expandObjects, animatableOnly):
+    '''
+    The real brains of the operation.  Filters the given objects/attributes
     into obj.attribute pairs, keeping things homogenized with long attribute
     names.  Sorts attributes further depending on the expandObjects and
     animatableOnly parameters.
@@ -228,7 +352,8 @@ def filterSelectedToAttributes(selected, attributes, expandObjects, animatableOn
     if animatableOnly is true, only keyable attributes are returned from the
     ones given.'''
 
-    # Seperate the attributes from the objects, the men from the boys.
+    # Separate the attributes from the objects, the men from the boys.
+    attributes = []
     objects = []
     for obj in selected:
         if '.' in obj or not expandObjects:
@@ -244,21 +369,21 @@ def filterSelectedToAttributes(selected, attributes, expandObjects, animatableOn
             if not any(1 for att in attributes if '%s.' % obj in att):
                 # Combine attributes with the object names to be: object.attribute
                 # If there are no animatable attrs, could be None.
-                attrs += getAnimatableAttributes(obj)  # Did you know you can extend() lists like this?  For some reason, I never knew.
+                attributes.extend(getAnimatableAttributes(obj))
 
                 # Add non-keyable attributes if needed.  Disable this chunk if getNonAnimatableAttributes fails again
                 if not animatableOnly:
-                    nonAnimatable = [a for a in getNonAnimatableAttributes(obj) if a not in attrs]
-                    attrs += nonAnimatable
+                    attributes.extend(a for a in getNonAnimatableAttributes(obj)
+                                      if a not in attrs)
 
-        # Woops!  Used to have this in the loop.  That's a big logic no-no.
-        # Don't want to modify something your checking against unless you're very very careful.  Which I wasn't.
-        attributes += attrs
+        attributes.extend(attrs)
+    return attributes
 
 
 @printCalled
-def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=False):
-    '''Get attributes selected in the graph editor.
+def getGraphEditor(graphInfo, expandObjects=True, useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=False):
+    '''
+    Get attributes selected in the graph editor.
 
     If expandObjects is true, attributes are saved in the format
     object.attribute and a lack of selection or an entire object selected will
@@ -267,16 +392,38 @@ def getGraphEditor(panel='graphEditor1', expandObjects=True, useSelectedCurves=T
     Otherwise, the list will be a mix of object.attribute and object.  Objects
     will not have their attributes expanded.
     '''
+
+    selection = []
+
+    # Check for curves first, we may use those exclusively
+    if useSelectedCurves:
+        selection = getSelectedCurves(usePartialCurveSelection=usePartialCurveSelection)
+
+        if selection:
+            return selection
+
+    # Get the graph outliner ui name.
+    outliner = getEditorFromPanel(graphInfo.panelName, cmd.outlinerEditor)
+
+    if outliner is not None:
+        # Find attributes selected in the graph editor's outliner
+        sc = cmd.outlinerEditor(outliner, q=1, selectionConnection=1)
+        selection = cmd.selectionConnection(sc, q=1, object=1)
+
+        # If nothing is selected, find objects present in outliner.
+        if not selection:
+            sc = cmd.outlinerEditor(outliner, q=1, mainListConnection=1)
+            selection = cmd.selectionConnection(sc, q=1, object=1)
+
+        if not selection:
+            selection = []
+
     attributes = []
-
-    # Get selected
-    selected = getGraphSelection(panel, useSelectedCurves=useSelectedCurves, usePartialCurveSelection=usePartialCurveSelection)
-
-    if selected:
+    if selection:
         # This is rare, but eliminate underworld paths.
-        removeUnderworldFromPath(selected)
+        removeUnderworldFromPath(selection)
+        attributes = filterSelectedToAttributes(selection, expandObjects, animatableOnly)
 
-        filterSelectedToAttributes(selected, attributes, expandObjects, animatableOnly)
     return attributes
 
 
@@ -306,41 +453,37 @@ def getChannelBox(expandObjects=True, animatableOnly=True, selectedOnly=False):
 
     # This is rare, but eliminate underworld paths.
     removeUnderworldFromPath(objects)
-    channelBox = mel.eval('$gChannelBoxName=$gChannelBoxName')  # Annoying method of getting mainChannelBox name.
-    channelBoxVisible = isChannelBoxVisible(channelBox)
 
-    selected = 0
+    channelBoxVisible = isChannelBoxVisible()
+    selected = False
     if channelBoxVisible:
         # Find what's selected (if anything) in the channelBox
         channelAttributes = ['sma', 'ssa', 'sha', 'soa']
         channelObjects = ['mol', 'sol', 'hol', 'ool']
-        channelAreas = zip(channelObjects, channelAttributes)
 
         foundObjs = []
-        for objArea, attrArea in channelAreas:
-            attrs = {attrArea: 1}
-            objs = {objArea: 1}
-            attrs = cmd.channelBox(channelBox, q=1, **attrs)
-            objs = cmd.channelBox(channelBox, q=1, **objs)
+        channelBox = pm.melGlobals['gChannelBoxName']
+        for objArea, attrArea in zip(channelObjects, channelAttributes):
+            foundAttrs = cmd.channelBox(channelBox, query=1, **{attrArea: True}) or []
+            foundObjs = cmd.channelBox(channelBox, query=1, **{objArea: True}) or []
 
-            if objs:
-                foundObjs.extend(objs)
             # Something was selected
-            if objs and attrs:
-                for obj in objs:
+            if foundObjs and foundAttrs:
+                for obj in foundObjs:
                     # Find keyable attributes to filter.
                     if animatableOnly:
                         keyableAttrs = getAnimatableAttributes(obj)
 
-                    for attr in attrs:
-                        # Make sure the attribute isn't something incredibly weird that will fail later.
+                    for attr in foundAttrs:
+                        # Make sure the attribute isn't something
+                        # incredibly weird that will fail later.
                         try:
                             attr = homogonizeName('%s.%s' % (obj, attr))
                         except RuntimeError:
                             continue
 
                         # Filter only keyable objects if necessary.
-                        selected = 1
+                        selected = True
                         if animatableOnly and keyableAttrs:
                             if attr in keyableAttrs:
                                 attributes.append(attr)
@@ -355,7 +498,7 @@ def getChannelBox(expandObjects=True, animatableOnly=True, selectedOnly=False):
 
     # There is at least one object selected, but no attributes
     if not selectedOnly and (not channelBoxVisible or (not selected and objects)):
-        filterSelectedToAttributes(objects, attributes, expandObjects, animatableOnly)
+        attributes.extend(filterSelectedToAttributes(objects, expandObjects, animatableOnly))
 
     return attributes
 
@@ -370,7 +513,7 @@ def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribu
         if not attribute:
             raise Exception('Node %s has no attribute passed.  An attribute is needed to find a connection!' % node)
 
-    if outAttr == None:
+    if outAttr is None:
         outAttr = not inAttr
     else:
         inAttr = not outAttr
@@ -379,8 +522,8 @@ def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribu
         nodes = cmd.listConnections('%s.%s' % (node, attribute), d=outAttr, s=inAttr, scn=1, p=findAttribute)
         if nodes:
             return nodes[0]
-    except Exception:
-        raise Exception('%s has no attribute %s' % (node, attribute))
+    except RuntimeError:
+        raise AttributeError('%s has no attribute %s' % (node, attribute))
 
 
 @printCalled
@@ -396,7 +539,7 @@ def getEditorFromPanel(panel, editorCommand):
 
 
 @printCalled
-def getSelectionConnection(panel='graphEditor1'):
+def selectionConnectionFromPanel(panel):
     '''A more robust way of determining the selection connection of a graph
     editor given its panel Returns None if nothing is found.'''
 
@@ -432,7 +575,7 @@ def getSelectedCurves(usePartialCurveSelection=False):
                 # Trace the output of  the curve to find the attribute.
                 attr = getFirstConnection(curve, 'output', outAttr=1, findAttribute=1)
                 selection.append(attr)
-            except RuntimeError:
+            except AttributeError:
                 pass
         else:
             # Short circuit the whole loop.  If there's ever any
@@ -450,55 +593,26 @@ def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, usePa
     attributes'''
 
     if useSelectedCurves:
-        useGraph, panel = useGraphAttributes(detectionType=detectionType)
-        if useGraph:
+        if detectionType == 'cursor':
+            graphEditor = GraphEditorInfo.detect(restrictToCursor=True)
+        elif detectionType == 'panel':
+            graphEditor = GraphEditorInfo.detect(restrictToVisible=True)
+        else:
+            raise ValueError('%s is not a valid detection type.  Use "cursor" or "panel"' % detectionType)
+
+        if graphEditor.isValid():
             if getSelectedCurves(usePartialCurveSelection=usePartialCurveSelection):
                 return True
     return False
 
 
 @printCalled
-def getGraphSelection(panel='graphEditor1', useSelectedCurves=True, usePartialCurveSelection=False):
-    '''A robust method of finding the selected objects/attributes in the graph
-    editor. If nothing is selected, all objects in the graph outliner will be
-    returned.  If a one or more curves are selected, those curves take
-    precedence over any other selection.
-
-    Always returns a list.'''
-
-    # First see if there are any curves selected
-    selection = []
-    if useSelectedCurves:
-        selection = getSelectedCurves(usePartialCurveSelection=usePartialCurveSelection)
-
-        if selection:
-            return selection
-
-    # Get the graph outliner ui name.
-    outliner = getEditorFromPanel(panel, cmd.outlinerEditor)
-
-    if outliner is not None:
-        # Find attributes selected in the graph editor's outliner
-        sc = cmd.outlinerEditor(outliner, q=1, selectionConnection=1)
-        selection = cmd.selectionConnection(sc, q=1, object=1)
-
-        # If nothing is selected, find objects present in outliner.
-        if not selection:
-            sc = cmd.outlinerEditor(outliner, q=1, mainListConnection=1)
-            selection = cmd.selectionConnection(sc, q=1, object=1)
-
-        if not selection:
-            selection = []
-
-    return selection
-
-
-@printCalled
-def isChannelBoxVisible(channelBox):
-    '''Returns if the channelBox is visible to the user (the user does not have
-    another control docked in front of it).'''
-    chVisible = 0
-
+def isChannelBoxVisible():
+    '''
+    Returns if the channelBox is visible to the user (the user does not have
+    another control docked in front of it).
+    '''
+    channelBox = pm.melGlobals['gChannelBoxName']
     # Test if QT version exists:
     if not mel.eval('catchQuiet(`isChannelBoxRaised`)'):
         # Undocumented mel proc in setChannelBoxVisible.mel included in 2011+
@@ -507,79 +621,6 @@ def isChannelBoxVisible(channelBox):
     else:
         # This command has the same functionality as isChannelBoxRaised, UNTIL QT was introduced.
         return not cmd.channelBox(channelBox, q=1, io=1)
-
-
-@printCalled
-def isGraphEditorActive():
-    '''Returns a tuple of (graphEditorState, graphEditorPanel).
-    GraphEditorState is true if the cursor is over the graph editor, and false
-    if it is not, or if the cursor can not be queried.  The graphEditorPanel
-    will default to 'graphEditor1' if no graph editor is found under the
-    mouse.'''
-
-    # Find out if the graph editor is under cursor
-    graphEditorActive = False
-    panel = ''
-    try:
-        panel = cmd.getPanel(underPointer=True)
-    except TypeError:
-        # Maya is being bitchy again.  Default to channelBox and warn
-        # the user that Maya is a bitch. Yes, I've had this fail here
-        # before.  Maya told me underPointer needed to be passed a bool.
-        # Well, I hate to tell you Maya, but True is a bool.
-        om.MGlobal.displayWarning("Defaulting to channelBox because Maya doesn't know where your cursor is.")
-
-    if panel and cmd.getPanel(typeOf=panel) == 'scriptedPanel':
-        # I assume that testing for the type will be more accurate than matching the panel strings
-        if cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor':
-            graphEditorActive = True
-
-    # A graph editor panel should always be passed, even if we couldn't find a specific one.
-    if not graphEditorActive:
-        panel = 'graphEditor1'
-    return graphEditorActive, panel
-
-
-@printCalled
-def findGraphEditorPanel():
-    """
-    Find the first graph editor panel, if one exists.
-    Returns None if no panel exists
-    """
-    graphPanels = [panel for panel in (cmd.getPanel(type='scriptedPanel') or [])
-                   if cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor']
-    if graphPanels:
-        # Sort graph panels just to help keep things deterministic if more than one is open.
-        return sorted(graphPanels)[0]
-    else:
-        return None
-
-
-@printCalled
-def isGraphEditorVisible(panel):
-    '''Determines if the provided graph editor panel is open by finding the
-    associated window. Minimized graph editors are considered closed.'''
-
-    # If the panel was passed in, there's a chance it was the wrong type.
-    if cmd.getPanel(typeOf=panel) == 'scriptedPanel' and cmd.scriptedPanel(panel, q=1, type=1) == 'graphEditor':
-        allWindows = cmd.lsUI(windows=1)
-        panelPath = cmd.scriptedPanel(panel, q=1, ctl=1)
-
-        if panelPath and allWindows:
-            # I can't find any easy api access to the window like panel.getWindow()
-            # So we have to do things the hard way and string match window paths
-            # to the controller paths.
-            matchingWindows = [window for window in allWindows if panelPath.startswith(window)]
-            if matchingWindows:
-                # Take the longest path, just in case there's more than one match.
-                # I don't think there can be, but just in case maya can make nested
-                # windows, lets do this to be safe.
-                window = sorted(matchingWindows)[-1]
-
-            if cmd.window(window, q=1, vis=1) and not cmd.window(window, q=1, i=1):
-                # If the panel is visible and not minimized.
-                return True
-    return False
 
 
 @printCalled
