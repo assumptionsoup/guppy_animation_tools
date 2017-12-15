@@ -424,13 +424,13 @@ class CurveSegment(object):
             # lastKey is the last key in the curve
             self.neighborRight = lastKey
         else:
-            self.neighborRight = curve.keys[lastKey.index + 1]
+            self.neighborRight = SegmentKey(curve.keys[lastKey.index + 1])
 
         if firstKey.isFirst():
             # firstKey is the first key in the curve
             self.neighborLeft = firstKey
         else:
-            self.neighborLeft = curve.keys[firstKey.index - 1]
+            self.neighborLeft = SegmentKey(curve.keys[firstKey.index - 1])
 
     @classmethod
     def fromCurve(cls, curve, collection=None):
@@ -492,6 +492,11 @@ class CurveSegment(object):
 
         if len(self.keys) != len(other.keys):
             _log.debug('Segment num keys mismatch')
+            return False
+
+        if (not self.neighborLeft.isEquivalent(other.neighborLeft) or
+                not self.neighborRight.isEquivalent(other.neighborRight)):
+            _log.debug('Segment key equivalence mismatch')
             return False
 
         for thisKey, otherKey in izip(self.keys, other.keys):
