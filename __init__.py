@@ -24,6 +24,8 @@ import sys
 import pymel.internal.plogging as plogging
 
 __license__ = 'LGPL v3'
+__version__ = "0.3"
+
 
 # Include the scripts folder in this package.  Which allows for:
 # import guppy_animation_tools.cleverKeys
@@ -122,6 +124,26 @@ def toggleDebug(namespaces=None):
         _logRegister[name].toggleDebug()
 
 
+logger = getLogger('guppy_animation_tools')
+
+
+def reportVersion():
+    '''Print out commit hash and semantic version'''
+    import re
+    commit = '????'
+    try:
+        directory = os.path.dirname(__file__)
+        with open(os.path.join(directory, 'version_info'), 'r') as fs:
+            match = re.match('\$Id: (.*) \$', fs.read())
+        if match and match.groups():
+            commit = match.groups()[0]
+    except IOError:
+        pass
+
+    logger.info("\nVersion: %s\nCommit: %s",
+                __version__, commit)
+
+
 def _addToPath(env, newLocation):
     '''
     Add path to os.environ[env]
@@ -173,8 +195,3 @@ _addPluginPath(os.path.join(_pluginPath, 'python'))
 _addScriptPath(os.path.join(REPO_DIR, 'AETemplates'))
 _addIconPath(os.path.join(REPO_DIR, 'icons'))
 
-# Add logger TODO: investigate if pymel has controls for manipluating
-# all loggers created through it.  If not, we should keep track of all
-# of GAT's loggers so we can toggle verbosity for the entire package if
-# needed.
-logger = getLogger('guppy_animation_tools')
