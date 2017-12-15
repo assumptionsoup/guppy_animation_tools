@@ -14,14 +14,14 @@ GNU Lesser General Public License version 3.0 unless otherwise stated.
 - [Slide Animation Keys](#slide-animation-keys)
 - [Zero Selection](#zero-selection)
 
----
+***
 
 ## Install ##
 
 #### Download ####
 Regular Users: [Download Guppy Animation Tools as a zip file here.](https://github.com/assumptionsoup/guppy_animation_tools/archive/master.zip)<br>
-Developers: Feel free to clone/fork the repo.  Add the repo to your PYTHONPATH
-- it should be named "guppy_animation_tools".  Import the specific tool you
+Developers: Feel free to clone/fork the repo.  Add the repo to your PYTHONPATH,
+it should be named "guppy_animation_tools".  Import the specific tool you
 need.  Skip ahead to the [usage section](#usage).
 
 #### Move Files ####
@@ -59,10 +59,8 @@ cmds.evalDeferred("from guppy_animation_tools import *")
 ```
 
 ## USAGE ##
-***
 
-
-Some of these scripts, like clever keys, are meant to be run as hotkeys. If you don't know how to set a hotkey in Maya, [the documentation is an excellent place to
+Some of these scripts, are meant to be run as hotkeys. If you don't know how to set a hotkey in Maya, [the documentation is an excellent place to
 learn.](http://download.autodesk.com/global/../doc_assets/maya2012/en_us/index.html?url=files/PC_Assign_a_MEL_script_to_a_hotkey.htm,topicNumber=d28e54174)
 
 
@@ -73,7 +71,7 @@ animated object or point on a mesh.  It aims to have a few extra features
 not found in most other arc tracers, such as a display on top feature and
 displaying sub-frame arc information.
 
----
+
 To create an arc tracer, run the python command:
 
     arcTracer.create()
@@ -94,7 +92,7 @@ with arcTracer.atPoint from the output.
 
     arcTracer.atPoint()
 
----
+
 **Settings**
 
 _A brief description of the settings on the Arc Tracer node._
@@ -120,8 +118,7 @@ frame is changed.
 object correctly. By default Arc Tracer tries to use methods in Maya that avoid a
 full scene DG evaluation (which is slow). However, these methods can fail to
 work correctly in certain circumstances (usually involving IK's or expressions).
-
-Enabling this mode will make the Update button move the current frame and refresh
+<br><br>Enabling this mode will make the Update button move the current frame and refresh
 the entire scene for every frame needed.  This will result in the most accurate
 positional data from Maya.
 - _Update:_ Updates the Arc Tracer.
@@ -145,7 +142,6 @@ surrounding keys whenever possible.
 
 **Commands**
 
----
 
 This is the main command, setting a key.  I suggest setting this to your
 default setKey hotkey, "s".  It might also be a good idea to set Maya's
@@ -156,7 +152,7 @@ have the fallback already set up.
 
     cleverKeys.setKey()
 
----
+
 _Everything from here on is just icing on the cake.  If you just want
 to use the default Clever Keys, you don't need to read any further._
 
@@ -232,7 +228,7 @@ referenced nodes can not be unlocked or unhidden.  This is to protect
 asset integrity.
 
 
-### Move My Objects ###
+#### Move My Objects ####
 
 Move My Objects is a simple tool to save and restore the world position
 of nodes.
@@ -271,7 +267,7 @@ to use these hotkeys.
 
 ![SAK Configure UI Image](../doc_assets/sak_configure.gif)
 
----
+***
 **Blend Modes**
 
 ![SAK Blend Image](../doc_assets/sak_blend.gif)
@@ -303,7 +299,7 @@ _Linear mode_ makes a line between the previous key and the next key per attribu
 _Default mode_ moves all keys toward their defaults (zero for most attributes).
 
 
-### Zero Selection ###
+#### Zero Selection ####
 
 Zero Selection returns the selected attributes to their default values.
 
