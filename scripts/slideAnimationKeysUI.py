@@ -347,6 +347,7 @@ class QuickPicksWidget(internal.ui.BubblingMenuFactory(QtWidgets.QWidget)):
         for x in xrange(len(_controller.settings.quickPickNums)):
             self.createButton()
         self.updateButtons()
+        self.updateCheckboxes()
 
         self.stack = StackedWidgets(self.layout())
         self.stack.addWidget(self.buttonsWidget)
@@ -377,6 +378,7 @@ class QuickPicksWidget(internal.ui.BubblingMenuFactory(QtWidgets.QWidget)):
         else:
             self._pickValues = [int(v) for v in _controller.settings.quickPickNums]
         self.updateButtons()
+        self.updateCheckboxes()
 
         self.stack.setCurrentIndex(int(self._configuringUI))
 
@@ -427,10 +429,6 @@ class QuickPicksWidget(internal.ui.BubblingMenuFactory(QtWidgets.QWidget)):
         field.insertPick.connect(insertButton)
 
     def updateButtons(self):
-        self.absoluteButton.setChecked(_controller.settings.absoluteQuickPicks)
-        self.nudgeButton.setChecked(not _controller.settings.absoluteQuickPicks)
-        self.configuringWidgets.checkbox.setChecked(_controller.settings.showQuickPick)
-
         # Clear buttons
         for x in reversed(xrange(len(self.pickButtons))):
             self._deleteButtonWidget(x)
@@ -438,6 +436,11 @@ class QuickPicksWidget(internal.ui.BubblingMenuFactory(QtWidgets.QWidget)):
         # Rebuild
         for value in self._pickValues:
             self.createButton(value)
+
+    def updateCheckboxes(self):
+        self.absoluteButton.setChecked(_controller.settings.absoluteQuickPicks)
+        self.nudgeButton.setChecked(not _controller.settings.absoluteQuickPicks)
+        self.configuringWidgets.checkbox.setChecked(_controller.settings.showQuickPick)
 
     def insertButton(self, index, value=0):
         if not self._configuringUI:
