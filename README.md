@@ -14,7 +14,6 @@ GNU Lesser General Public License version 3.0 unless otherwise stated.
 - [Slide Animation Keys](#slide-animation-keys)
 - [Zero Selection](#zero-selection)
 
-***
 
 ## Install ##
 
@@ -147,7 +146,7 @@ the graph editor, things selected in the graph editor will be keyed,
 otherwise attributes selected in the channel box will be keyed. What
 specifically happens can be tweaked in the various options listed below.
 
-**Commands**
+![Clever Keys Overview Image](../doc_assets/cleverkeys_overview.gif)
 
 
 This is the main command, setting a key.  I suggest setting this to your
