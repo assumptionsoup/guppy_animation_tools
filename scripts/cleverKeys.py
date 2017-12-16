@@ -56,7 +56,7 @@ def toggleDebug():
     selectedAttributes.toggleDebug()
 
 
-def setKey(insert=True, useSelectedCurves=True, usePartialCurveSelection=False):
+def setKey(insert=True, useSelectedCurves=True, usePartialCurveSelection=True):
     '''Sets clever keys.  Hohoho.
 
     If the mouse is over the graph editor, it keys the attributes
@@ -273,7 +273,8 @@ def syncGraphEditor(graphInfo=None):
         cmd.selectionConnection(selectionConnection, edit=True, select=attr)
 
 
-def syncChannelBox(graphInfo=None, perfectSync=False):
+def syncChannelBox(graphInfo=None, perfectSync=False,
+                   useSelectedCurves=True, usePartialCurveSelection=True):
     '''
     Syncs the attributes selected in the graphEditor to those in the
     channelBox.
@@ -288,7 +289,9 @@ def syncChannelBox(graphInfo=None, perfectSync=False):
         return
 
     # Get selected nodes and attributes
-    selected = selectedAttributes.getGraphEditor(graphInfo, expandObjects=False)
+    selected = selectedAttributes.getGraphEditor(
+        graphInfo, expandObjects=False, useSelectedCurves=useSelectedCurves,
+        usePartialCurveSelection=usePartialCurveSelection)
     nodes = cmd.ls(sl=1, l=1)
 
     # Process attributes

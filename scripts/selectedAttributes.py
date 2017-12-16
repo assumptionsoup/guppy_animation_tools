@@ -216,7 +216,7 @@ class GraphEditorInfo(object):
 
 
 @printCalled
-def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=False):
+def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=True):
     '''Get selected attributes using the given detection type.
 
     A detectionType of 'cursor' will find selected attributes in the graph
@@ -381,7 +381,7 @@ def filterSelectedToAttributes(selected, expandObjects, animatableOnly):
 
 
 @printCalled
-def getGraphEditor(graphInfo, expandObjects=True, useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=False):
+def getGraphEditor(graphInfo, expandObjects=True, useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=True):
     '''
     Get attributes selected in the graph editor.
 
@@ -551,7 +551,7 @@ def selectionConnectionFromPanel(panel):
 
 
 @printCalled
-def getSelectedCurves(usePartialCurveSelection=False):
+def getSelectedCurves(usePartialCurveSelection=True):
     '''
     Returns a list of all curves that are completely selected.
 
@@ -588,7 +588,7 @@ def getSelectedCurves(usePartialCurveSelection=False):
 
 
 @printCalled
-def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, usePartialCurveSelection=False):
+def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, usePartialCurveSelection=True):
     '''Returns true if selected curves took precedence while obtaining
     attributes'''
 

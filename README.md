@@ -142,15 +142,10 @@ Clever Keys provides a simple way to key selected attributes. It
 determines which attributes to key based on the mouse position and tries
 to always insert a key.
 
-But what exactly what is keyed and when?  If the mouse is over the graph
-editor, and a curve is selected, it will key just that curve, otherwise,
-it will key all the attributes selected there. If no attributes are
-selected in the graph editor, it will key all the attributes in the
-graph editor. If the mouse is not over the graph editor, it will key the
-attributes selected in the channel box. If the channelBox is closed it
-will key all the attributes on the selected node.  It attempts to use
-the "Insert Key" function which makes keys match the curvature of the
-surrounding keys whenever possible.
+But what exactly what is keyed and when? Roughly, if your cursor is over
+the graph editor, things selected in the graph editor will be keyed,
+otherwise attributes selected in the channel box will be keyed. What
+specifically happens can be tweaked in the various options listed below.
 
 **Commands**
 
@@ -173,23 +168,23 @@ command instead:
 
     cleverKeys.setKey(insert=False)
 
-When working in the graph editor, if an animation curve is selected
-Clever Keys will only key the selected curve(s) and not any other
-attributes.  To disable this, you can use the option:
+When working in the graph editor, if any part of an animation curve is
+selected Clever Keys will only key the selected curve(s) and not any
+other attributes.  To disable this, you can use the option:
+
+    cleverKeys.setKey(usePartialCurveSelection=False)
+
+Even with this option set, if an entire curve is selected (not just part
+of it) Clever Keys will only key the selected curve(s) and not any other
+attributes.  To disable curve filtering entirely, you can use the option:
 
     cleverKeys.setKey(useSelectedCurves=False)
-
-If you would like Clever Keys limit keys when curves are selected, but
-want this behavior whenever you select any part of a curve (keyframe,
-tangent or the entire curve), you can enable this:
-
-    cleverKeys.setKey(usePartialCurveSelection=True)
 
 Clever keys can help you clear your selected attributes.
 
     cleverKeys.clearAttributes()
 
-That command works the same way that Clever Keys does.  It clears
+This command works the same way that Clever Keys does.  It clears
 whatever is under your mouse.  If you want to just clear a specific
 window, you can use either of these:
 
@@ -200,12 +195,15 @@ Or to clear them both:
 
     cleverKeys.clearAttributes(graphEditor=True, channelBox=True)
 
-Select similar attributes.  If your mouse is over the graph editor, this
-will sync the attributes selected in the Graph Editor to the Channel
-Box.  If your mouse is not over the graph editor, this will sync the
-channels selected in the channel box to the ones in the graph editor.
+CleverKeys can help you sync your selection between the graph editor and
+the channel box.
 
     cleverKeys.selectSimilarAttributes()
+
+If your mouse is over the graph editor, this will sync the attributes
+selected in the Graph Editor to the Channel Box.  If your mouse is not
+over the graph editor, this will sync the channels selected in the
+channel box to the ones in the graph editor.
 
 To explicitly select similar attributes in the Graph Editor without
 detecting where your mouse is, use:
