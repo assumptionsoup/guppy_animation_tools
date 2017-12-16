@@ -68,10 +68,12 @@ learn.](https://knowledge.autodesk.com/support/maya/learn-explore/caas/CloudHelp
 
 #### Arc Tracer ####
 
-Arc Tracer is a tool that can visually display the arc of an
-animated object or point on a mesh.  It aims to have a few extra features
-not found in most other arc tracers, such as a display on top feature and
+Arc Tracer is a tool that can visually display the arc of an animated
+object or point on a mesh.  It aims to have a few extra features not
+found in most other arc tracers, such as a display-over-mesh feature and
 displaying sub-frame arc information.
+
+![Arc Tracer Overview Image](../doc_assets/arc_overview.gif )
 
 **IMPORTANT** Arc Tracer has not yet been updated to use viewport 2.0
 As a stop-gap measure, in order to see anything in Maya 2017 update 3 or
@@ -81,7 +83,8 @@ this command before launching:
 
     export MAYA_ENABLE_VP2_PLUGIN_LOCATOR_LEGACY_DRAW=1
 
-To create an arc tracer, run the python command:
+To create an arc tracer, select a node you want to trace, then run the
+python command:
 
     arcTracer.create()
 
@@ -93,11 +96,11 @@ first create an arc tracer with the settings you like, then run:
 This will print out the command needed to create an arc tracer with
 those settings.  You can make that your default hotkey/shelf button.
 
-This command will let you trace mesh.  Just run it and click the point
-on the mesh you want to trace.  A word of warning: this was an experiment
-that has mostly been abandoned due to being **extremely slow**.  If you
-want to use this with the getShortcut command, just replace arcTracer.create
-with arcTracer.atPoint from the output.
+This command will let you trace mesh.  Run this python command and click
+the point on the mesh you want to trace.  A word of warning: this was an
+experiment that has mostly been abandoned due to being **extremely
+slow**.  If you want to use this with the getShortcut command, just
+replace arcTracer.create with arcTracer.atPoint from the output.
 
     arcTracer.atPoint()
 
