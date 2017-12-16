@@ -1,5 +1,5 @@
-Guppy Animation Tools is a loose collection of scripts to help with
-animation production in Maya.
+Guppy Animation Tools is a collection of tools to help with animation
+production in Maya.
 
 Guppy Animation tools and all associated files are licensed under the
 GNU Lesser General Public License version 3.0 unless otherwise stated.
@@ -11,6 +11,7 @@ GNU Lesser General Public License version 3.0 unless otherwise stated.
 - [Clever Keys](#clever-keys)
 - [Lock 'n Hide](#lock-n-hide)
 - [Move My Objects](#move-my-objects)
+- [Rename It](#rename-it)
 - [Slide Animation Keys](#slide-animation-keys)
 - [Zero Selection](#zero-selection)
 
@@ -253,6 +254,29 @@ action to copy it to the keyboard. You can then make a hotkey or shelf
 button by pasting this in the appropriate area. You do not have to have
 the UI open in order to use these hotkeys.
 
+
+#### Rename It ####
+
+Rename It is a simple, but powerful renaming tool. It is opened with
+the following python command:
+
+    renameIt.ui()
+
+RenameIt can do simple renaming. It understands ending numbers and how
+to pad node names.
+
+![Rename It Padding Image](../doc_assets/renamit_padding.gif)
+
+RenameIt can also search and replace text.
+
+![Rename It Simple Rename Image](../doc_assets/renameit_simple_rename.gif)
+
+For the advanced user, RenameIt can also do complex regex search and
+replace. The up/down arrow keys can be used to bring up previous entries.
+
+![Rename It Regex Rename Image](../doc_assets/renameit_regex_rename.gif)
+
+
 #### Slide Animation Keys ####
 
 Slide Animation Keys helps you quickly adjust the values of multiple
@@ -306,7 +330,6 @@ _Linear mode_ makes a line between the previous key and the next key per attribu
 ![SAK Default Image](../doc_assets/sak_default.gif)
 
 _Default mode_ moves all keys toward their defaults (zero for most attributes).
-
 
 #### Zero Selection ####
 
