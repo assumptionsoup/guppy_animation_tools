@@ -462,7 +462,7 @@ class ArcNode(omMPx.MPxLocatorNode):
         '''Delete node connected to fromPlug of nodeType.  If nodeType is None,
         it will be deleted regardless of type.'''
 
-        if outAttr == None:
+        if outAttr is None:
             outAttr = not inAttr
         else:
             inAttr = not outAttr
@@ -676,7 +676,14 @@ def nodeInitializer():
     addAttr(ArcNode.traceVertex, 'traceVertex')
     addAttr(ArcNode.follicle, 'follicle')
 
-    return om.MStatus.kSuccess
+    try:
+        return om.MStatus.kSuccess
+    except AttributeError:
+        # After Maya 2013, om.MStatus was removed and "success" is
+        # indicated by returning nothing, errors by raising
+        # RunTimeErrors om.kUnknownParameter for compute() methods with
+        # unknown parameters
+        pass
 
 
 def addAttr(attr, name):

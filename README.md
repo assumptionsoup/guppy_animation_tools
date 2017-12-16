@@ -60,8 +60,10 @@ cmds.evalDeferred("from guppy_animation_tools import *")
 
 ## USAGE ##
 
-Some of these scripts, are meant to be run as hotkeys. If you don't know how to set a hotkey in Maya, [the documentation is an excellent place to
-learn.](http://download.autodesk.com/global/../doc_assets/maya2012/en_us/index.html?url=files/PC_Assign_a_MEL_script_to_a_hotkey.htm,topicNumber=d28e54174)
+All of the commands given below are python. Some of these tools, are
+meant to be run as hotkeys. If you don't know how to set a hotkey in
+Maya, [the documentation is an excellent place to
+learn.](https://knowledge.autodesk.com/support/maya/learn-explore/caas/CloudHelp/cloudhelp/2016/ENU/Maya/files/GUID-92F8EBD9-A658-4A1E-9D85-571B5B809F52-htm.html)
 
 
 #### Arc Tracer ####
@@ -71,6 +73,13 @@ animated object or point on a mesh.  It aims to have a few extra features
 not found in most other arc tracers, such as a display on top feature and
 displaying sub-frame arc information.
 
+**IMPORTANT** Arc Tracer has not yet been updated to use viewport 2.0
+As a stop-gap measure, in order to see anything in Maya 2017 update 3 or
+later, you must set the `MAYA_ENABLE_VP2_PLUGIN_LOCATOR_LEGACY_DRAW`
+before launching maya.  In bash terminals this is done by running
+this command before launching:
+
+    export MAYA_ENABLE_VP2_PLUGIN_LOCATOR_LEGACY_DRAW=1
 
 To create an arc tracer, run the python command:
 
