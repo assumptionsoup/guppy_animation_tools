@@ -4,7 +4,7 @@ A super simplistic dialog for renaming the selected nodes in Maya
 '''
 *******************************************************************************
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -29,7 +29,7 @@ import platform
 
 import pymel.core as pm
 import guppy_animation_tools as gat
-from guppy_animation_tools.utils.qt import QtCore, QtGui, QtWidgets
+from guppy_animation_tools.internal.qt import QtCore, QtGui, QtWidgets
 
 
 try:
@@ -80,7 +80,7 @@ def safeRename(objs, newNames):
                 'Cannot rename "%s" to "%s"' % (obj.nodeName(), name))
 
     try:
-        with gat.utils.UndoChunk():
+        with gat.internal.UndoChunk():
             # Rename objects to something that I hope doesn't already exist,
             # so that we don't run into issues trying to rename an object in
             # our list to the name of an object that hasn't yet been
@@ -308,7 +308,7 @@ class RenameDialog(QtWidgets.QDialog):
 
         # Transparencies only work with compositing on Linux.
         try:
-            from guppy_animation_tools.utils.qt import QtX11Extras
+            from guppy_animation_tools.internal.qt import QtX11Extras
             self.useRoundedCorners = QtX11Extras.QX11Info.isCompositingManagerRunning()
         except ImportError:
             self.useRoundedCorners = platform.system() == 'Windows'
@@ -466,7 +466,7 @@ class RenameDialog(QtWidgets.QDialog):
 def ui():
     global _globalQtObject
     if pm.selected(objectsOnly=True):
-        renameDialog = RenameDialog(gat.utils.ui.getMayaWindow())
+        renameDialog = RenameDialog(gat.internal.ui.getMayaWindow())
         for obj in reversed(_globalQtObjects):
             _globalQtObjects.remove(obj)
             obj.close()

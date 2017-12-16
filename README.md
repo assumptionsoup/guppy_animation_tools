@@ -1,95 +1,30 @@
-Guppy Animation Tools is a loose collection of scripts to help animators in Maya.
+Guppy Animation Tools is a collection of tools to help with animation
+production in Maya.
 
-### _License_ ###
-***
-All scripts contained in Guppy Animation tools script are licensed under the
-GNU Lesser General Public License version 3.0.  The full license is contained
-in the License directory of this project.
+Guppy Animation tools and all associated files are licensed under the
+GNU Lesser General Public License version 3.0 unless otherwise stated.
 
-# Index #
-***
-**[About](#about)**
 
-- [General](#general)
+- [Install](#install)
+
 - [Arc Tracer](#arc-tracer)
 - [Clever Keys](#clever-keys)
 - [Lock 'n Hide](#lock-n-hide)
 - [Move My Objects](#move-my-objects)
+- [Rename It](#rename-it)
 - [Slide Animation Keys](#slide-animation-keys)
 - [Zero Selection](#zero-selection)
 
-**[To Install](#to-install)**
 
-- [Download](#download)
-- [Move Files](#move-files)
-- [Setup](#setup-usersetup)
+## Install ##
 
-**[Usage](#usage)**
-
-- [Arc Tracer](#arc-Tracer-Usage)
-- [Clever Keys](#clever-keys-usage)
-- [Lock 'n Hide](#lock-n-hide-usage)
-- [Move My Objects](#move-my-objects-usage)
-- [Slide Animation Keys](#slide-animation-keys-usage)
-- [Zero Selection](#zero-selection-usage)
-
----
-
-[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/d0049c6702187608bf6e7539f64d848c "githalytics.com")](http://githalytics.com/assumptionsoup/Guppy-Animation-Tools)
-
-# About #
-***
-### General ###
-This is the live code repository to Guppy Animation Tools. Scripts in this
-repository will be updated as I write them.  They will contain the newest
-features, the newest bug fixes, and the newest bugs.
-
-Guppy Animation Tools is a loose collection of scripts I've written
-to help animators.  It is not intended to be a cohesive suite of
-scripts, but rather various odds and ends I've written at animators'
-requests.
-
-### Arc Tracer ###
-Arc Tracer is a script/plugin combo that can visually display the arc of an
-animated object or point on a mesh.  It aims to have a few extra features
-not found in most other arc tracers, such as a display on top feature and
-displaying sub-frame arc information.
-
-### Clever Keys ###
-Clever Keys is a script that allows animators to quickly key selected
-attributes in both the graph editor and the channel box.  It determines
-which attributes to key based on the mouse position and tries to always
-insert a key.
-
-### Lock 'n Hide ###
-Lock 'n Hide is a script/plugin combo that allows animators to lock and or hide
-attributes on referenced nodes.  Animators can restore the original state of
-changed attributes at any time.  Attributes not modified by Lock 'n Hide that
-are hidden or locked on referenced nodes can not be unlocked or unhidden.  This
-is to protect asset integrity.
-
-### Move My Objects ###
-Move My Objects is a simple script to save and restore the world position of
-a single object.
-
-### Slide Animation Keys ###
-Slide Animation Keys is a script that allows an animator to quickly adjust
-multiple keys.  It has a simple interface that is extremely customizable,
-and multiple modes to determine how to move the keys.
-
-### Zero Selection ###
-Zero Selection is a small script that quickly lets the user return the selected
-attributes to their default values.
-
-# To Install #
-***
-### Download ###
+#### Download ####
 Regular Users: [Download Guppy Animation Tools as a zip file here.](https://github.com/assumptionsoup/guppy_animation_tools/archive/master.zip)<br>
-Developers: Feel free to clone/fork the repo.  Add the repo to your PYTHONPATH
-- it should be named "guppy_animation_tools".  Import the specific tool you
+Developers: Feel free to clone/fork the repo.  Add the repo to your PYTHONPATH,
+it should be named "guppy_animation_tools".  Import the specific tool you
 need.  Skip ahead to the [usage section](#usage).
 
-### Move Files ###
+#### Move Files ####
 
 1. If you downloaded the zip archive, extract it.
 2. Rename the top folder "guppy_animation_tools" without the quotes.  Make sure
@@ -99,7 +34,8 @@ folder!
 3. Move the guppy_animation_tools folder to Maya's "scripts" directory. In
 windows this should be "My Documents/Maya/scripts".  In linux this should be
 "~/maya/scripts".
-<br><br>
+
+
 If you're having trouble finding a directory you can write to, you can try
 running the following lines in the python script editor in Maya.  It should
 print out all the directories you can use.
@@ -108,7 +44,7 @@ import maya.mel as mel
 print '\n'.join(mel.eval('getenv("PYTHONPATH")').split(';'))
 ```
 
-### Setup ###
+#### Setup ####
 
 The userSetup.py file is a python script that Maya executes on startup.
 It should be in Maya's "scripts" directory - the same directory you put
@@ -122,40 +58,53 @@ import maya.cmds as cmds
 cmds.evalDeferred("from guppy_animation_tools import *")
 ```
 
-# USAGE #
-***
-*Please note that while Guppy Animation Tools is primarily written in python,
-all of the commands in this section are MEL.  So be sure to make mel hotkeys/shelf
-buttons!* This is because older versions of Maya did not have python
-hotkeys.
+## USAGE ##
 
-Some of these scripts, like clever keys, are meant to be run as hotkeys. If you don't know how to set a hotkey in Maya, [the documentation is an excellent place to
-learn.](http://download.autodesk.com/global/docs/maya2012/en_us/index.html?url=files/PC_Assign_a_MEL_script_to_a_hotkey.htm,topicNumber=d28e54174)
+All of the commands given below are python. Some of these tools, are
+meant to be run as hotkeys. If you don't know how to set a hotkey in
+Maya, [the documentation is an excellent place to
+learn.](https://knowledge.autodesk.com/support/maya/learn-explore/caas/CloudHelp/cloudhelp/2016/ENU/Maya/files/GUID-92F8EBD9-A658-4A1E-9D85-571B5B809F52-htm.html)
 
 
-### Arc Tracer Usage ###
----
-To create an arc tracer, run:
+#### Arc Tracer ####
 
-    python("arcTracer.create()");
+Arc Tracer is a tool that can visually display the arc of an animated
+object or point on a mesh.  It aims to have a few extra features not
+found in most other arc tracers, such as a display-over-mesh feature and
+displaying sub-frame arc information.
+
+![Arc Tracer Overview Image](../doc_assets/arc_overview.gif )
+
+**IMPORTANT** Arc Tracer has not yet been updated to use viewport 2.0
+As a stop-gap measure, in order to see anything in Maya 2017 update 3 or
+later, you must set the `MAYA_ENABLE_VP2_PLUGIN_LOCATOR_LEGACY_DRAW`
+before launching maya.  In bash terminals this is done by running
+this command before launching:
+
+    export MAYA_ENABLE_VP2_PLUGIN_LOCATOR_LEGACY_DRAW=1
+
+To create an arc tracer, select a node you want to trace, then run the
+python command:
+
+    arcTracer.create()
 
 If you want an arc tracer to always be run with the same settings,
 first create an arc tracer with the settings you like, then run:
 
-    python("arcTracer.getShortcut()");
+    arcTracer.getShortcut()
 
 This will print out the command needed to create an arc tracer with
 those settings.  You can make that your default hotkey/shelf button.
 
-This command will let you trace mesh.  Just run it and click the point
-on the mesh you want to trace.  A word of warning: this was an experiment
-that has mostly been abandoned due to being **extremely slow**.  If you
-want to use this with the getShortcut command, just replace arcTracer.create
-with arcTracer.atPoint from the output.
+This command will let you trace mesh.  Run this python command and click
+the point on the mesh you want to trace.  A word of warning: this was an
+experiment that has mostly been abandoned due to being **extremely
+slow**.  If you want to use this with the getShortcut command, just
+replace arcTracer.create with arcTracer.atPoint from the output.
 
-    python("arcTracer.atPoint()");
+    arcTracer.atPoint()
 
----
+
 **Settings**
 
 _A brief description of the settings on the Arc Tracer node._
@@ -181,29 +130,25 @@ frame is changed.
 object correctly. By default Arc Tracer tries to use methods in Maya that avoid a
 full scene DG evaluation (which is slow). However, these methods can fail to
 work correctly in certain circumstances (usually involving IK's or expressions).
-
-Enabling this mode will make the Update button move the current frame and refresh
-the entire scene for every frame needed.  This will result in the most acurrate
+<br><br>Enabling this mode will make the Update button move the current frame and refresh
+the entire scene for every frame needed.  This will result in the most accurate
 positional data from Maya.
 - _Update:_ Updates the Arc Tracer.
 
 
-### Clever Keys Usage ###
----
+#### Clever Keys ####
 
-**General**
-Clever keys tries to provide a simple and intuitive way to key the selected
-attributes. Exactly what is keyed and when is described below.
+Clever Keys provides a simple way to key selected attributes. It
+determines which attributes to key based on the mouse position and tries
+to always insert a key.
 
-If the mouse is over the graph editor, and a curve is selected, it will key
-just that curve, otherwise, it will key all the attributes selected there. If
-no attributes are selected in the graph editor, it will key all the attributes
-in the graph editor. If the mouse is not over the graph editor, it will key the
-attributes selected in the channel box.  If the channelBox is closed it will key all the attributes on the selected node.  It attempts to use the "Insert Key" function which makes keys match the curvature of the surrounding keys whenever possible.
+But what exactly what is keyed and when? Roughly, if your cursor is over
+the graph editor, things selected in the graph editor will be keyed,
+otherwise attributes selected in the channel box will be keyed. What
+specifically happens can be tweaked in the various options listed below.
 
-**Commands**
+![Clever Keys Overview Image](../doc_assets/cleverkeys_overview.gif)
 
----
 
 This is the main command, setting a key.  I suggest setting this to your
 default setKey hotkey, "s".  It might also be a good idea to set Maya's
@@ -212,195 +157,188 @@ script as bug free and stable as possible.  But if something does go wrong
 at some point and you do need to set a normal key again, it's nice to
 have the fallback already set up.
 
-    python("cleverKeys.setKey()");
+    cleverKeys.setKey()
 
----
+
 _Everything from here on is just icing on the cake.  If you just want
 to use the default Clever Keys, you don't need to read any further._
 
 If you don't want clever keys to try to insert keys, you can use this
 command instead:
 
-    python("cleverKeys.setKey(insert = False)");
+    cleverKeys.setKey(insert=False)
 
-When working in the graph editor, if an animation curve is selected
-Clever Keys will only key the selected curve(s) and not any other
-attributes.  To disable this, you can use the option:
+When working in the graph editor, if any part of an animation curve is
+selected Clever Keys will only key the selected curve(s) and not any
+other attributes.  To disable this, you can use the option:
 
-    python("cleverKeys.setKey(useSelectedCurves = False)");
+    cleverKeys.setKey(usePartialCurveSelection=False)
 
-If you would like Clever Keys limit keys when curves are selected, but
-want this behavior whenever you select any part of a curve (keyframe,
-tangent or the entire curve), you can enable this:
+Even with this option set, if an entire curve is selected (not just part
+of it) Clever Keys will only key the selected curve(s) and not any other
+attributes.  To disable curve filtering entirely, you can use the option:
 
-    python("cleverKeys.setKey(usePartialCurveSelection = True)");
+    cleverKeys.setKey(useSelectedCurves=False)
 
-In Maya 2011 and later it is very easy to clear a channel selection.
-You just have to click away from the channel.  Before 2010 things were
-a little trickier.  To help with this, I've added the clear command,
-which will clear your selection.
+Clever keys can help you clear your selected attributes.
 
-    python("cleverKeys.clearAttributes()");
+    cleverKeys.clearAttributes()
 
-That command works the same way that Clever Keys does.  It clears
+This command works the same way that Clever Keys does.  It clears
 whatever is under your mouse.  If you want to just clear a specific
 window, you can use either of these:
 
-    python("cleverKeys.clearAttributes(graphEditor = True)");
-    python("cleverKeys.clearAttributes(channelBox = True)");
+    cleverKeys.clearAttributes(graphEditor=True)
+    cleverKeys.clearAttributes(channelBox=True)
 
 Or to clear them both:
 
-    python("cleverKeys.clearAttributes(graphEditor = True, channelBox = True)");
+    cleverKeys.clearAttributes(graphEditor=True, channelBox=True)
 
-Select similar attributes.  If your mouse is over the graph editor, this
-will take any attribute you have selected and select that attribute on all
-of the nodes in your graph editor.  If your mouse is not over the graph
-editor, this will sync the channels you have selected in the channel box
-to the ones in the graph editor.
+CleverKeys can help you sync your selection between the graph editor and
+the channel box.
 
-    python("cleverKeys.selectSimilarAttributes()");
+    cleverKeys.selectSimilarAttributes()
+
+If your mouse is over the graph editor, this will sync the attributes
+selected in the Graph Editor to the Channel Box.  If your mouse is not
+over the graph editor, this will sync the channels selected in the
+channel box to the ones in the graph editor.
 
 To explicitly select similar attributes in the Graph Editor without
 detecting where your mouse is, use:
 
-    python("cleverKeys.selectSimilarAttributes(detectCursor = False)");
+    cleverKeys.selectSimilarAttributes(detectCursor=False)
 
 To explicitly sync the Channel Box to the Graph editor, use the following
-command. Unfortunately, as far as I know, Maya doesn't offer me enough
-control to write a command that syncs the channel selection the other way.
+command.
 
-    python("cleverKeys.syncGraphEditor()");
+    cleverKeys.syncGraphEditor()
 
-### Lock 'n Hide Usage ###
----
-Lock 'n Hide can be used with or without a GUI.  To open the gui, use the
-command:
+To sync the Graph Editor to the Channel box, use this python command:
 
-    python("lock_n_hide.ui()");
+    cleverKeys.syncChannelBox()
 
----
-_The following commands can be used if you don't wish to have a GUI.  You
-do not need them if you plan to use the GUI._
+#### Lock 'n Hide ####
 
-To lock the selected attributes:
+Lock 'n Hide is a tool that allows you to lock and or hide attributes on
+referenced nodes.  You can restore the original state at any time.
 
-    python("lock_n_hide.lock()");
+Lock 'n Hide can be opened with the python command:
 
-To lock and hide the selected attributes:
+    lock_n_hide.ui()
 
-    python("lock_n_hide.lockHide()");
+If you want to use an action without using the GUI, right click on the
+action to copy it to the keyboard. You can then make a hotkey or shelf
+button by pasting this in the appropriate area. You do not have to have
+the UI open in order to use these hotkeys.
 
-To reset the selected attributes:
-
-    python("lock_n_hide.reset()");
-
-To reset all the attributes in the scene:
-
-    python("lock_n_hide.resetAll()");
-
-### Move My Objects Usage ###
----
-Move My Objects can be used with or without a GUI.  To open the gui, use the
-command:
-
-    python("moveMyObjects.ui()");
-
----
-_The following commands can be used if you don't wish to have a GUI.  You
-do not need them if you plan to use the GUI._
-
-To save an object's position without the GUI use:
-
-    python("moveMyObjects.savePosition()");
-
-To apply a position to an object without the GUI use:
-
-    python("moveMyObjects.applyPosition()");
+Attributes not modified by Lock 'n Hide that are hidden or locked on
+referenced nodes can not be unlocked or unhidden.  This is to protect
+asset integrity.
 
 
-### Slide Animation Keys Usage ###
----
+#### Move My Objects ####
 
-**General**
+Move My Objects is a simple tool to save and restore the world position
+of nodes.
 
-Slide Animation Keys uses a special subset of the selectedAttributes.py
-module to help get relevant selected attributes. If your graph editor is
-open it will work on the selected keys. If no keys are selected or the
-graph editor is closed, it will work on the keys on the selected object
-on the current frame. This last behavior can be disabled in the settings
-by unchecking "Use Keys on Current Frame" and pressing apply.
+![SAK Overview Image](../doc_assets/mmo_overview.gif)
 
-**Commands**
+Move My Objects can be opened with the python command:
 
----
-Slide Animation Keys is primarily meant to be used through the GUI. You
-can open the gui by running:
+    moveMyObjects.ui()
 
-    python("slideAnimationKeys.ui()");
+If you want to use an action without using the GUI, right click on the
+action to copy it to the keyboard. You can then make a hotkey or shelf
+button by pasting this in the appropriate area. You do not have to have
+the UI open in order to use these hotkeys.
 
-A single command is provided to set the value of the slider using the last
-mode previously used.  Slide Animation Keys should save the last mode used
-between Maya sections, so if you want to only use a single mode, you will
-only have to set it through the GUI once.
 
-   python("slideAnimationKeys.hotkey( value = 30 )");
+#### Rename It ####
 
-In this command you can replace 30 with any number you like.  Additionally,
-you can set an optional update parameter to False if you don't want this
-command to affect the GUI.  This is only relevant if you are using this
-command in conjunction with the GUI.
+Rename It is a simple, but powerful renaming tool. It is opened with
+the following python command:
 
-   python("slideAnimationKeys.hotkey( value = 30, update = False )");
+    renameIt.ui()
 
-By default, update is True.
+RenameIt can do simple renaming. It understands ending numbers and how
+to pad node names.
 
----
+![Rename It Padding Image](../doc_assets/renamit_padding.gif)
+
+RenameIt can also search and replace text.
+
+![Rename It Simple Rename Image](../doc_assets/renameit_simple_rename.gif)
+
+For the advanced user, RenameIt can also do complex regex search and
+replace. The up/down arrow keys can be used to bring up previous entries.
+
+![Rename It Regex Rename Image](../doc_assets/renameit_regex_rename.gif)
+
+
+#### Slide Animation Keys ####
+
+Slide Animation Keys helps you quickly adjust the values of multiple
+keys.
+![SAK Overview Image](../doc_assets/sak_overview.gif)
+
+Slide Animation Keys uses a lot of the same selection logic that Clever
+Keys uses. If your graph editor is open it will work on the selected
+keys. If no keys are selected or the graph editor is closed, it will
+work on the keys on the selected object on the current frame.
+
+Slide Animation Keys is opened with the python command:
+
+    slideAnimationKeys.ui()
+
+Right click to adjust settings. If you want to use an action without
+using the GUI, right click on the action to copy it to the keyboard.
+You can then make a hotkey or shelf button by pasting this in
+the appropriate area. You do not have to have the UI open in order
+to use these hotkeys.
+
+![SAK Configure UI Image](../doc_assets/sak_configure.gif)
+
+***
 **Blend Modes**
 
-_A brief description of the blending modes in Slide Animation Keys._
+![SAK Blend Image](../doc_assets/sak_blend.gif)
 
-- _Blend:_ Blend key values between the previous and next keys.
-- _Average:_ Move key values towards the average of the previous and next keys.
-- _Default:_ Move key values towards their defaults (zero for most attributes,
-one for scale).
-- _Shrink:_ Move keys on each frame towards their vertical center.
-- _Level:_ Move all keys towards their vertical center.
+_Blend mode_ moves all keys towards the previous and next keys.
 
----
-**Settings**
+![SAK Shift Image](../doc_assets/sak_shift.gif)
 
-_A brief description of the settings in Slide Animation Keys._
+_Shift mode_ shifts the keys as a block towards the previous and next keys.
 
-- _Absolute Mode:_ Keys will move to an absolute percentage.
-- _Relative Mode:_ Keys will move by a percentage relative to their last position.
-- _Realtime Mode:_ Moving the slider will update the keys in real time.  Only
-avaliable in Absolute Mode.
-- _Reset Default Value:_ The saved position is reset each time a value is applied.
-The effect is similar to Compound Percentages. This mode can overshoot keys, but
-it can not reset the keys back to their original positions.
-- _Compound Percentages:_ Each key will move less each time a button is pressed.
-This cannot overshoot keys, but keys can still be reset to their original positions
-by applying 0.
-- _Visibilities:_ Everything but the blend mode can be hidden through the
-settings.
+![SAK Average Image](../doc_assets/sak_average.gif)
 
-### Zero Selection Usage ###
----
-Zero Selection uses the selectedAttributes.py module and will therefore work on
-selected attributes in the same way as Clever Keys.  Zero Selection is meant to
-be run without a GUI and has a single command:
+_Average mode_ moves keys toward the average of the previous and next key per attribute.
 
-    python("zeroSelection.zeroSelection()");
+![SAK Level Image](../doc_assets/sak_level.gif)
 
+_Level mode_ moves all keys toward a single average value.
 
+![SAK Shrink Image](../doc_assets/sak_shrink.gif)
 
+_Shrink mode_ shrinks each key towards each other on every frame.
 
+![SAK Linear Image](../doc_assets/sak_linear.gif)
 
+_Linear mode_ makes a line between the previous key and the next key per attribute.
 
+![SAK Default Image](../doc_assets/sak_default.gif)
 
+_Default mode_ moves all keys toward their defaults (zero for most attributes).
 
+#### Zero Selection ####
 
+Zero Selection returns the selected attributes to their default values.
+
+Zero Selection uses the same logic as Clever Keys when choosing what
+attribute to zero out.  Zero Selection is run with the python command:
+
+    zeroSelection.zeroSelection()
 
 
 
