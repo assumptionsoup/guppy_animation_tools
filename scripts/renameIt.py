@@ -4,7 +4,7 @@ A super simplistic dialog for renaming the selected nodes in Maya
 '''
 *******************************************************************************
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -28,8 +28,8 @@ import re
 import platform
 
 import pymel.core as pm
-from PySide import QtCore, QtGui
-import guppy_animation_tools.utils as utils
+import guppy_animation_tools as gat
+from guppy_animation_tools.internal.qt import QtCore, QtGui, QtWidgets
 
 
 try:
@@ -38,6 +38,9 @@ try:
 except NameError:
     _globalQtObjects = []
     _history = {'search': [], 'replace': []}
+
+_log = gat.getLogger(__name__)
+
 
 # TODO:
 #      - Add option to enable/disable smart-padding
@@ -50,6 +53,10 @@ class InvalidNameError(ValueError):
     pass
 
 
+class RenameError(Exception):
+    pass
+
+
 def safeRename(objs, newNames):
     '''
     Safely renames the given PyNodes to the given names.
@@ -59,36 +66,52 @@ def safeRename(objs, newNames):
     the original name is restored.
     '''
 
+    objPairs = zip(objs, newNames)
+
     # Validate names
-    for obj, name in zip(objs, newNames):
-        if not pm.mel.isValidObjectName(name):
+    skipPairs = set([])
+    for objPair in objPairs:
+        obj, name = objPair
+        # Don't try to rename nodes to the same names.
+        if name == obj.nodeName(stripNamespace=True):
+            skipPairs.add(objPair)
+        elif not pm.mel.isValidObjectName(name):
             raise InvalidNameError(
                 'Cannot rename "%s" to "%s"' % (obj.nodeName(), name))
 
-    with utils.UndoChunk():
-        # Rename objects to something that I hope doesn't already exist,
-        # so that we don't run into issues trying to rename an object in
-        # our list to the name of an object that hasn't yet been
-        # renamed.
+    try:
+        with gat.internal.UndoChunk():
+            # Rename objects to something that I hope doesn't already exist,
+            # so that we don't run into issues trying to rename an object in
+            # our list to the name of an object that hasn't yet been
+            # renamed.
 
-        oldNames = []
-        for obj in objs:
-            oldNames.append(obj.nodeName())
-            obj.rename('_' * 80)
+            for objPair in objPairs:
+                if objPair in skipPairs:
+                    continue
 
-        # Rename things for real
-        for x, obj in enumerate(objs):
-            try:
-                obj.rename(newNames[x])
-            except RuntimeError:
-                # Restore original name in case of errors
-                obj.rename(oldNames[x])
-                raise
+                obj, name = objPair
+                try:
+                    obj.rename('_' * 80)
+                except RuntimeError:
+                    print 'Failed to rename %s to %s.  Skipping node.' % (obj, name)
+                    skipPairs.add(objPair)
+
+            # Rename things for real
+            for objPair in objPairs:
+                if objPair not in skipPairs:
+                    obj, name = objPair
+                    obj.rename(name)
+
+    except RuntimeError as err:
+        # Undo bad renames and show error
+        pm.undo()
+        raise RenameError('Failed while renaming %s to %s: %s' % (obj, name, err.message))
 
 
 def renameObjects(objs, searchText, replaceText):
     '''
-    Rename the given PyNode's.
+    Rename the given PyNode's
 
     There are two fundamental behaviors to this rename: regex
     substitution, and padded rename.
@@ -141,7 +164,7 @@ def _substituteRename(objs, searchText, replaceText):
     newNames = []
     reComp = re.compile(searchText)
     for obj in objs:
-        name = reComp.sub(replaceText, obj.nodeName())
+        name = reComp.sub(replaceText, obj.nodeName(stripNamespace=True))
         newNames.append(name)
 
     # Rename 'em
@@ -152,7 +175,7 @@ def _renameWithPadding(objs, name):
     '''
     Renames all the given PyNodes to `name`.
 
-    Unlike a regular rename operation in Maya it will calculate the
+    Unlike a regular rename operation in Maya, this will calculate the
     needed padding to properly pad all the selected names (e.g. node01,
     node02 ... node10).  If the `name` ends in a number, that number
     will be the first number used for the sequence. If that number is
@@ -214,7 +237,7 @@ def padNumber(number, padding):
     return '%%0%dd' % padding % number
 
 
-class RenameDialog(QtGui.QDialog):
+class RenameDialog(QtWidgets.QDialog):
     '''
     A super simplistic dialog for renaming the selected nodes in Maya
     '''
@@ -239,26 +262,26 @@ class RenameDialog(QtGui.QDialog):
         font.setStyleHint(QtGui.QFont.TypeWriter)
 
         # Build layout
-        self.searchText = QtGui.QLabel(self)
+        self.searchText = QtWidgets.QLabel(self)
         self.searchText.setText('Search')
-        self.searchField = QtGui.QLineEdit(self)
+        self.searchField = QtWidgets.QLineEdit(self)
         self.searchField.setFont(font)
         self.searchField.returnPressed.connect(self.renameSelection)
-        self.replaceText = QtGui.QLabel(self)
+        self.replaceText = QtWidgets.QLabel(self)
         self.replaceText.setText('Replace')
-        self.replaceField = QtGui.QLineEdit(self)
+        self.replaceField = QtWidgets.QLineEdit(self)
         self.replaceField.setFont(font)
         self.replaceField.returnPressed.connect(self.renameSelection)
         self.populateReplaceField()
 
-        self.setLayout(QtGui.QHBoxLayout())
+        self.setLayout(QtWidgets.QHBoxLayout())
         self.setMinimumWidth(250)
-        self.textColumn = QtGui.QWidget(self)
-        self.fieldColumn = QtGui.QWidget(self)
+        self.textColumn = QtWidgets.QWidget(self)
+        self.fieldColumn = QtWidgets.QWidget(self)
         self.layout().addWidget(self.textColumn)
         self.layout().addWidget(self.fieldColumn)
-        fieldLayout = QtGui.QVBoxLayout()
-        textLayout = QtGui.QVBoxLayout()
+        fieldLayout = QtWidgets.QVBoxLayout()
+        textLayout = QtWidgets.QVBoxLayout()
         self.textColumn.setLayout(textLayout)
         self.fieldColumn.setLayout(fieldLayout)
         textLayout.setContentsMargins(0, 0, 0, 0)
@@ -283,10 +306,11 @@ class RenameDialog(QtGui.QDialog):
         checkFocusEvents(self.searchField)
         checkFocusEvents(self.replaceField)
 
-        # Transparencies only work with compositing.
+        # Transparencies only work with compositing on Linux.
         try:
-            self.useRoundedCorners = QtGui.QX11Info.isCompositingManagerRunning()
-        except AttributeError:
+            from guppy_animation_tools.internal.qt import QtX11Extras
+            self.useRoundedCorners = QtX11Extras.QX11Info.isCompositingManagerRunning()
+        except ImportError:
             self.useRoundedCorners = platform.system() == 'Windows'
 
         if self.useRoundedCorners:
@@ -299,8 +323,8 @@ class RenameDialog(QtGui.QDialog):
         self.replaceField.setFocus()
 
         # Add hotkeys to detect up and down arrows
-        QtGui.QShortcut(QtGui.QKeySequence("Up"), self, self.previousEntry)
-        QtGui.QShortcut(QtGui.QKeySequence("Down"), self, self.nextEntry)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Up"), self, self.previousEntry)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self, self.nextEntry)
 
         self.historyIndexes = {'search': len(_history['search']) - 1,
                                'replace': len(_history['replace']) - 1}
@@ -346,7 +370,7 @@ class RenameDialog(QtGui.QDialog):
                 index = currentIndex - 1
             return index
 
-        focusedWidget = QtGui.qApp.focusWidget()
+        focusedWidget = QtWidgets.QApplication.focusWidget()
         for field, entries in _history.iteritems():
             if focusedWidget is self.historyFields[field]:
                 i = getPreviousIndex(self.historyIndexes[field])
@@ -366,7 +390,7 @@ class RenameDialog(QtGui.QDialog):
                 index = currentIndex + 1
             return index
 
-        focusedWidget = QtGui.qApp.focusWidget()
+        focusedWidget = QtWidgets.QApplication.focusWidget()
         for field, entries in _history.iteritems():
             if focusedWidget is self.historyFields[field]:
                 i = getNextIndex(self.historyIndexes[field], entries)
@@ -399,7 +423,7 @@ class RenameDialog(QtGui.QDialog):
         '''
 
         hasFocus = False
-        focusedWidget = QtGui.qApp.focusWidget()
+        focusedWidget = QtWidgets.QApplication.focusWidget()
         if focusedWidget is not None:
             if self is focusedWidget.window():
                 hasFocus = True
@@ -413,7 +437,7 @@ class RenameDialog(QtGui.QDialog):
         self.replaceField.setFocus()
         objs = self.getSelection()
         if objs:
-            self.replaceField.setText(objs[0].nodeName())
+            self.replaceField.setText(objs[0].nodeName(stripNamespace=True))
             self.replaceField.selectAll()
 
     def renameSelection(self):
@@ -437,13 +461,12 @@ class RenameDialog(QtGui.QDialog):
         '''
         Returns a list of selected PyNode objects to rename.
         '''
-        return pm.selected()
-
+        return pm.selected(objectsOnly=True)
 
 def ui():
-    global _globalQtObjects
-    if pm.selected():
-        renameDialog = RenameDialog(utils.ui.getMayaWindow())
+    global _globalQtObject
+    if pm.selected(objectsOnly=True):
+        renameDialog = RenameDialog(gat.internal.ui.getMayaWindow())
         for obj in reversed(_globalQtObjects):
             _globalQtObjects.remove(obj)
             obj.close()
