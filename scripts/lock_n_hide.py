@@ -64,7 +64,7 @@ the initial state of an attribute.
 
 -------------------------------------------------------------------------------
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -88,22 +88,22 @@ the initial state of an attribute.
 '''
 
 # Meta.
-__author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012-2014'
-__license__ = 'LGPL v3'
-__version__ = '0.4'
-__email__ = 'AssumptionSoup@gmail.com'
-__status__ = 'Alpha'
+__version__ = '0.45'
+
 
 import maya.OpenMaya as om
 import maya.cmds as cmd
 import maya.mel as mel
-import selectedAttributes
-import pickleAttr as pickle
 from textwrap import dedent
+
+from guppy_animation_tools import getLogger, internal, selectedAttributes
+import guppy_animation_tools.pickleAttr as pickle
+from guppy_animation_tools.internal.qt import QtCore, QtGui, QtWidgets
+
 
 # Constants
 PICKLED_ATTRIBUTE = 'lockHideReferenceDict'
+_log = getLogger(__name__)
 
 
 def loadPlugin():
@@ -429,7 +429,7 @@ def setScriptJob(number):
     mel.eval('$gLock_N_HideScriptJob = %d' % number)
 
 '''############################################################################
-                                User Methods
+                                User Functions
 ############################################################################'''
 
 
@@ -529,174 +529,79 @@ def stopScriptJob():
     return False
 
 '''############################################################################
-                                UI Methods
+                                UI
 ############################################################################'''
 
 
-def formatUIText(text):
-    '''UI text helper function to strip out tabs and extra new lines'''
-    text = dedent(text)
-    textFormatted = ''
-    for x, line in enumerate(text.splitlines()):
-        if x != 0 and line == '':
-            textFormatted += '\n\n'
+class CopyActionButton(internal.ui.BubblingMenuFactory(QtWidgets.QPushButton)):
+    def __init__(self, actionText, buttonText, parent=None):
+        self._actionText = actionText
+        super(CopyActionButton, self).__init__(buttonText, parent=parent)
+
+    def rightClickMenu(self, menu=None):
+        if menu is None:
+            menu = QtWidgets.QMenu()
+        copyAction = menu.addAction("Copy action to clipboard")
+        action = super(CopyActionButton, self).rightClickMenu(menu=menu)
+        if action == copyAction:
+            internal.copyFunctionToClipboard(
+                __name__, self._actionText)
+            _log.info("Copied action to clipboard! Paste it into the python "
+                      "script editor or python hotkey.")
+        return action
+
+
+class LockNHideWidget(internal.ui.BubblingMenuFactory(internal.ui.PersistentWidget)):
+    def __init__(self, parent=None):
+        super(LockNHideWidget, self).__init__(parent=parent)
+        self._buildLayout()
+        self._connectSignals()
+
+    def _buildLayout(self):
+        self.setWindowTitle("Lock 'n Hide")
+        self.setLayout(QtWidgets.QVBoxLayout())
+        self.row1Layout = QtWidgets.QHBoxLayout()
+        self.row2Layout = QtWidgets.QHBoxLayout()
+        self.layout().addLayout(self.row1Layout)
+        self.layout().addLayout(self.row2Layout)
+
+        self.lockButton = CopyActionButton(
+            "lockHideSelected(lock=True, hide=False)", "Lock")
+        self.lockHideButton = CopyActionButton(
+            "lockHideSelected(lock=True, hide=True)", "Lock 'n Hide")
+        self.resetButton = CopyActionButton(
+            "reset()", "Reset Selected")
+
+        self.row1Layout.addWidget(self.lockButton)
+        self.row1Layout.addWidget(self.lockHideButton)
+        self.row2Layout.addWidget(self.resetButton)
+
+    def _connectSignals(self):
+        self.lockButton.clicked.connect(lambda: lockHideSelected(lock=True, hide=False))
+        self.lockHideButton.clicked.connect(lambda: lockHideSelected(lock=True, hide=True))
+        self.resetButton.clicked.connect(reset)
+
+    def rightClickMenu(self, menu=None):
+        if menu is None:
+            menu = QtWidgets.QMenu()
         else:
-            textFormatted += line
-    return textFormatted
+            menu.addSeparator()
+
+        resetAction = menu.addAction("Reset All Channels")
+        action = super(LockNHideWidget, self).rightClickMenu(menu=menu)
+        if action == resetAction:
+            resetAll()
+        return action
 
 
-def help():
-    ''' Help window '''
+def ui(refresh=False):
+    '''Ui launcher'''
+    internal.ui.showWidget('lock_n_hide_widget', LockNHideWidget, refresh=refresh)
 
-    windowName = 'lock_n_hideHelpWin'
-    if cmd.window(windowName, exists=1):
-        cmd.deleteUI(windowName)
-        # cmd.windowPref( windowName, remove = True )
-    cmd.window(windowName, w=450, h=430, s=1, tb=1, t="Lock 'n Hide Help")
-    cmd.scrollLayout(childResizable=1, horizontalScrollBarThickness=0)
-    cmd.columnLayout(adjustableColumn=1, rowSpacing=10, columnOffset=("both", 10))
-
-    title = "Lock 'n Hide"
-    generalTitle = 'General'
-    general = formatUIText('''
-            Lock 'n Hide adds the ability to lock and hide attributes on referenced nodes.
-
-            Lock 'n Hide buttons work on attributes selected in the Channel Box.
-            If no attributes are selected, all the attributes will be affected.''')
-    buttonsTitle = 'Buttons'
-    buttons = formatUIText('''
-            The Lock button locks attributes.
-
-            The Lock 'n Hide button locks and hides attributes.
-
-            The Reset button will unlock the selected attributes.  If no attributes
-            are selected, all the attributes on the selected node will be unlocked and unhidden.
-
-            The "Reset All Objects" under the Options menu will restore all the nodes in
-            the current scene to their original state.''')
-    noteTitle = 'Note'
-    note = formatUIText('''
-            Lock 'n Hide should not allow users to unlock or unhide an attribute
-            that is locked or hidden in a referenced file.  This is to protect asset
-            integrity and keep Maya's operations consistent as unlocked attributes that
-            were previously locked in a referenced file will not save/restore their current
-            data with scene.  Future versions of this script could theoretically store this
-            data in the same way that locked/unlocked states are saved now.  However, I have
-            no plans to do so at this time (I don't want studios calling to complain that I've
-            broken their pipelines).''')
-
-    cmd.text(label=title, wordWrap=1, align='center', fn='boldLabelFont')
-    cmd.separator(style='in')
-    cmd.text(label=generalTitle, wordWrap=1, align='center', fn='obliqueLabelFont')
-    cmd.text(label=general, wordWrap=1, align='left')
-    cmd.separator(style='in')
-    cmd.text(label=buttonsTitle, wordWrap=1, align='center', fn='obliqueLabelFont')
-    cmd.text(label=buttons, wordWrap=1, align='left')
-    cmd.separator(style='in')
-    cmd.text(label=noteTitle, wordWrap=1, align='center', fn='obliqueLabelFont')
-    cmd.text(label=note, wordWrap=1, align='left')
-    # fn = 'boldLabelFont', 'obliqueLabelFont', 'fixedWidthFont'
-
-    cmd.showWindow(windowName)
-
-
-def about():
-    ''' About Window '''
-
-    windowName = 'lock_n_hideAboutWin'
-    if cmd.window(windowName, exists=1):
-        cmd.deleteUI(windowName)
-        # cmd.windowPref( windowName, remove = True )
-    cmd.window(windowName, w=450, h=380, s=1, tb=1, t="About Lock 'n Hide")
-    cmd.scrollLayout(childResizable=1, horizontalScrollBarThickness=0)
-    cmd.columnLayout(adjustableColumn=1, rowSpacing=10, columnOffset=("both", 10))
-
-    title = "About Lock 'n Hide"
-    generalTitle = "The Gist of It"
-    aboutText = formatUIText('''
-                Lock 'n Hide was written by Jordan Hueckstaedt.
-                It utilizes a relatively simple work around to enable locking and hiding attributes on referenced nodes.''')
-
-    detailsTitle = "The Devil in the Details"
-    details = formatUIText('''
-                Lock 'n Hide saves the current state of an attribute on scene load and uses the Maya API to force an attribute's locked
-                and keyable state.  The user can restore the original saved state of that attribute at any time.  This script
-                does not allow unlocking or unhiding referenced attributes.''')
-    footerText = dedent('''
-                Lock 'n Hide Version %s
-                Copyright 2012 Jordan Hueckstaedt
-                Lock 'n Hide is released under LGPL v3 License
-                Website: rubberguppy.com
-                Email: assumptionsoup@gmail.com
-
-                Special thanks to Eric Pavey for letting me release his pickle attribute code/concept under LGPL
-
-
-                ''' % __version__)  # Why do I need a blank line here for the last line to show up?  What the hell is going on?!?
-    contactTitle = 'See a bug? Want to suggest a feature?  Contact me!'
-    contact = dedent('''
-
-                ''')
-    cmd.text(label=title, wordWrap=1, align='center', fn='boldLabelFont')
-    cmd.separator(style='in')
-    cmd.text(label=generalTitle, wordWrap=1, align='center', fn='obliqueLabelFont')
-    cmd.text(label=aboutText, wordWrap=1, align='center')
-    cmd.separator(style='in')
-
-    cmd.text(label=detailsTitle, wordWrap=1, align='center', fn='obliqueLabelFont')
-    cmd.text(label=details, wordWrap=1, align='center')
-    cmd.separator(style='in')
-
-    # cmd.text(label = contactTitle, wordWrap = 1, align = 'center', fn = 'obliqueLabelFont')
-    # cmd.text(label = contact, wordWrap = 1, align = 'center')
-    # cmd.separator(style = 'in')
-
-    cmd.text(label=footerText, wordWrap=1, align='center')
-
-    cmd.showWindow(windowName)
-
-
-def ui():
-    ''' Main UI window '''
-    windowName = 'lock_n_hideWin'
-    if cmd.window(windowName, exists=1):
-        cmd.deleteUI(windowName)
-        # cmd.windowPref( windowName, remove = True )
-    cmd.window(windowName, w=380, h=85, s=1, tb=1, menuBar=1, t="Lock 'n Hide - v%s" % __version__)
-
-    cmd.menu(label='Options')
-    cmd.menuItem(label='Reset All Objects', c=lambda *args: resetAll())
-    cmd.menuItem(label='Help', c=lambda *args: help())
-    cmd.menuItem(label='About', c=lambda *args: about())
-    form = cmd.formLayout(numberOfDivisions=100)
-
-    lock = cmd.button(c=lambda *args: lockHideSelected(lock=1, hide=0), label='Lock', backgroundColor=(.4, .7, .2))
-    lockhide = cmd.button(c=lambda *args: lockHideSelected(lock=1, hide=1), label="Lock 'n Hide", backgroundColor=(.4, .7, .2))
-
-    resetButton = cmd.button(c=lambda *args: reset(), label="Reset", backgroundColor=(.2, .6, 1.0))
-
-    layout = {'af': [], 'ap': [], 'ac': []}
-
-    layout['af'].append((lock, 'top', 5))
-    layout['af'].append((lock, 'left', 7))
-    layout['ap'].append((lock, 'right', 7, 50))
-
-    layout['af'].append((lockhide, 'top', 5))
-    layout['ac'].append((lockhide, 'left', 7, lock))
-    layout['af'].append((lockhide, 'right', 7))
-
-    layout['ac'].append((resetButton, 'top', 5, lock))
-    layout['af'].append((resetButton, 'left', 7))
-    layout['af'].append((resetButton, 'right', 7))
-
-    cmd.formLayout(
-        form,
-        e=1,
-        **layout)
-
-    cmd.showWindow(windowName)
 
 # Loads plugin and creates scriptjob on import
 if __name__ != '__main__':
     loadPlugin()
     startScriptJob()
+else:
+    ui(refresh=True)

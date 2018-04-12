@@ -15,7 +15,7 @@ accidental misuse could cause lost work, time, and money.
 
 -------------------------------------------------------------------------------
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -37,13 +37,6 @@ accidental misuse could cause lost work, time, and money.
 
 -------------------------------------------------------------------------------
 '''
-
-__author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012-2014'
-__license__ = 'LGPL v3'
-__version__ = '0.1'
-__email__ = 'AssumptionSoup@gmail.com'
-__status__ = 'Alpha'
 
 import maya.OpenMaya as om
 import maya.OpenMayaMPx as omMPx

@@ -23,6 +23,10 @@ import sys
 
 import pymel.internal.plogging as plogging
 
+__license__ = 'LGPL v3'
+__version__ = "0.3"
+
+
 # Include the scripts folder in this package.  Which allows for:
 # import guppy_animation_tools.cleverKeys
 
@@ -47,13 +51,97 @@ __all__ = [
     'selectedAttributes',
     'slideAnimationKeys',
     'zeroSelection',
-    'guppyInstaller']
+    'renameIt']
+_logRegister = {}
+
+
+class LogManager(object):
+    '''
+    Manager to help toggle states on loggers
+    '''
+    def __init__(self, logger, name):
+        self.logger = logger
+        self.name = name
+        self._previousLevel = None
+
+    def isDebugging(self):
+        return self.logger.level == plogging.DEBUG
+
+    def setLevel(self, level):
+        self._previousLevel = self.logger.level
+        self.logger.setLevel(level)
+
+    def restoreLevel(self):
+        if self._previousLevel is not None:
+            self.logger.setLevel(self._previousLevel)
+        self._previousLevel = None
+
+    def toggleDebug(self):
+        if self.isDebugging():
+            self.restoreLevel()
+        else:
+            self.setLevel(plogging.DEBUG)
+
+    @classmethod
+    def create(cls, name):
+        logger = plogging.getLogger(name)
+        logger = plogging.getLogger(name)
+        logger.setLevel(logger.INFO)
+        return cls(logger, name)
 
 
 def getLogger(name):
     if 'guppy_animation_tools' in name:
         name = name.replace('guppy_animation_tools', 'gat', 1)
-    return plogging.getLogger(name)
+    if name not in _logRegister:
+        _logRegister[name] = LogManager.create(name)
+
+    return _logRegister[name].logger
+
+
+def setLoggerLevels(level, namespaces=None):
+    if namespaces is None:
+        namespaces = _logRegister.keys()
+
+    for name in namespaces:
+        _logRegister[name].setLevel(level)
+
+
+def restoreLoggerLevels(namespaces=None):
+    global _logLevels
+    if namespaces is None:
+        namespaces = _logRegister.keys()
+
+    for name in namespaces:
+        _logRegister[name].restoreLevel()
+    _logLevels = {}
+
+
+def toggleDebug(namespaces=None):
+    if namespaces is None:
+        namespaces = _logRegister.keys()
+    for name in namespaces:
+        _logRegister[name].toggleDebug()
+
+
+logger = getLogger('guppy_animation_tools')
+
+
+def reportVersion():
+    '''Print out commit hash and semantic version'''
+    import re
+    commit = '????'
+    try:
+        directory = os.path.dirname(__file__)
+        with open(os.path.join(directory, 'version_info'), 'r') as fs:
+            match = re.match('\$Id: (.*) \$', fs.read())
+        if match and match.groups():
+            commit = match.groups()[0]
+    except IOError:
+        pass
+
+    logger.info("\nVersion: %s\nCommit: %s",
+                __version__, commit)
 
 
 def _addToPath(env, newLocation):
@@ -107,8 +195,3 @@ _addPluginPath(os.path.join(_pluginPath, 'python'))
 _addScriptPath(os.path.join(REPO_DIR, 'AETemplates'))
 _addIconPath(os.path.join(REPO_DIR, 'icons'))
 
-# Add logger TODO: investigate if pymel has controls for manipluating
-# all loggers created through it.  If not, we should keep track of all
-# of GAT's loggers so we can toggle verbosity for the entire package if
-# needed.
-logger = getLogger('guppy_animation_tools')

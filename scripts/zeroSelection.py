@@ -5,7 +5,7 @@ The primary method associated with this module is zeroSelection()
 
 *******************************************************************************
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -26,12 +26,6 @@ The primary method associated with this module is zeroSelection()
     Email:.........AssumptionSoup@gmail.com
 ****************************************************************************'''
 
-__author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012-2014'
-__license__ = 'GPL v3'
-__version__ = '0.02'
-__email__ = 'AssumptionSoup@gmail.com'
-__status__ = 'Production'
 
 import maya.cmds as cmd
 import maya.OpenMaya as om

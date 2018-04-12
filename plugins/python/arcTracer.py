@@ -19,7 +19,7 @@ expression.
 
 *******************************************************************************
     License and Copyright
-    Copyright 2012-2014 Jordan Hueckstaedt
+    Copyright 2012-2017 Jordan Hueckstaedt
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -40,13 +40,6 @@ expression.
     Email:.........AssumptionSoup@gmail.com
 
 ****************************************************************************'''
-
-__author__ = 'Jordan Hueckstaedt'
-__copyright__ = 'Copyright 2012-2014'
-__license__ = 'LGPL v3'
-__version__ = '0.5'
-__email__ = 'AssumptionSoup@gmail.com'
-__status__ = 'Beta'
 
 import sys
 import maya.OpenMaya as om
@@ -469,7 +462,7 @@ class ArcNode(omMPx.MPxLocatorNode):
         '''Delete node connected to fromPlug of nodeType.  If nodeType is None,
         it will be deleted regardless of type.'''
 
-        if outAttr == None:
+        if outAttr is None:
             outAttr = not inAttr
         else:
             inAttr = not outAttr
@@ -683,7 +676,14 @@ def nodeInitializer():
     addAttr(ArcNode.traceVertex, 'traceVertex')
     addAttr(ArcNode.follicle, 'follicle')
 
-    return om.MStatus.kSuccess
+    try:
+        return om.MStatus.kSuccess
+    except AttributeError:
+        # After Maya 2013, om.MStatus was removed and "success" is
+        # indicated by returning nothing, errors by raising
+        # RunTimeErrors om.kUnknownParameter for compute() methods with
+        # unknown parameters
+        pass
 
 
 def addAttr(attr, name):
