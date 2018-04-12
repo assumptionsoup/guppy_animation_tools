@@ -56,7 +56,9 @@ def toggleDebug():
     selectedAttributes.toggleDebug()
 
 
+
 def setKey(insert=True, useSelectedCurves=True, usePartialCurveSelection=True):
+
     '''Sets clever keys.  Hohoho.
 
     If the mouse is over the graph editor, it keys the attributes
@@ -88,7 +90,11 @@ def setKey(insert=True, useSelectedCurves=True, usePartialCurveSelection=True):
     '''
 
     # Get Attributes
+
+
+
     attributes = selectedAttributes.get(detectionType='cursor', useSelectedCurves=useSelectedCurves, usePartialCurveSelection=usePartialCurveSelection)
+
     currentFrame = cmd.currentTime(q=1)
 
     # Make extra sure attributes are unique (they should already be)

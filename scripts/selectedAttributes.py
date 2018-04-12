@@ -217,6 +217,7 @@ class GraphEditorInfo(object):
 
 @printCalled
 def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=True):
+
     '''Get selected attributes using the given detection type.
 
     A detectionType of 'cursor' will find selected attributes in the graph
@@ -241,10 +242,12 @@ def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, use
     # Get selected attributes from the channelBox or graphEditor depending on where the cursor is.
     if graphEditor.isValid():
         # Pass list by reference
+
         attributes = getGraphEditor(graphEditor,
             useSelectedCurves=useSelectedCurves,
             animatableOnly=animatableOnly,
             usePartialCurveSelection=usePartialCurveSelection)
+
     else:
         attributes = getChannelBox(animatableOnly=animatableOnly)
 
@@ -385,6 +388,7 @@ def getGraphEditor(graphInfo, expandObjects=True, useSelectedCurves=True, animat
     '''
     Get attributes selected in the graph editor.
 
+
     If expandObjects is true, attributes are saved in the format
     object.attribute and a lack of selection or an entire object selected will
     expand to that object's keyable nodes.
@@ -417,6 +421,7 @@ def getGraphEditor(graphInfo, expandObjects=True, useSelectedCurves=True, animat
 
         if not selection:
             selection = []
+
 
     attributes = []
     if selection:
@@ -584,15 +589,18 @@ def getSelectedCurves(usePartialCurveSelection=True):
             # only on curves, but ignore other selected keys, which
             # is not desirable when usePartialCurveSelection is false.
             return []
+
     return selection
 
 
 @printCalled
 def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, usePartialCurveSelection=True):
+
     '''Returns true if selected curves took precedence while obtaining
     attributes'''
 
     if useSelectedCurves:
+
         if detectionType == 'cursor':
             graphEditor = GraphEditorInfo.detect(restrictToCursor=True)
         elif detectionType == 'panel':
@@ -602,6 +610,7 @@ def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, usePa
 
         if graphEditor.isValid():
             if getSelectedCurves(usePartialCurveSelection=usePartialCurveSelection):
+
                 return True
     return False
 
@@ -613,6 +622,7 @@ def isChannelBoxVisible():
     another control docked in front of it).
     '''
     channelBox = pm.melGlobals['gChannelBoxName']
+
     # Test if QT version exists:
     if not mel.eval('catchQuiet(`isChannelBoxRaised`)'):
         # Undocumented mel proc in setChannelBoxVisible.mel included in 2011+
