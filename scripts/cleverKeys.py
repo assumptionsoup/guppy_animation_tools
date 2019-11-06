@@ -52,10 +52,6 @@ class KeyframeQueryFailed(Exception):
     pass
 
 
-def toggleDebug():
-    selectedAttributes.toggleDebug()
-
-
 def setKey(insert=True, useSelectedCurves=True, usePartialCurveSelection=True):
     '''Sets clever keys.  Hohoho.
 

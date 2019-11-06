@@ -1,5 +1,5 @@
 '''
-A super simplistic dialog for renaming the selected nodes in Maya
+A simplistic dialog for renaming the selected nodes in Maya
 '''
 '''
 *******************************************************************************
@@ -34,10 +34,8 @@ from guppy_animation_tools.internal.qt import QtCore, QtGui, QtWidgets
 
 try:
     _globalQtObjects
-    _history
 except NameError:
     _globalQtObjects = []
-    _history = {'search': [], 'replace': []}
 
 _log = gat.getLogger(__name__)
 
@@ -237,6 +235,64 @@ def padNumber(number, padding):
     return '%%0%dd' % padding % number
 
 
+class FieldHistory(object):
+    '''
+    Tracks state of text-field entries.
+    '''
+    def __init__(self):
+        self._entries = []
+        self._index = -1
+
+    def addEntry(self, text):
+        '''
+        Insert a history entry into the stack.
+        '''
+        # Do not add repeat entries
+        try:
+            if self.getEntry() == text:
+                return
+        except IndexError:
+            pass
+
+        self._entries.insert(self._index + 1, text)
+        self._index += 1
+
+    def getEntry(self):
+        '''
+        Get the current history entry.
+
+        Raises an Index error if it does not exist.
+        '''
+        return self._entries[self._index]
+
+    def updateEntry(self, text):
+        self._entries[self._index] = text
+
+    def nextEntry(self):
+        '''
+        Update the field history to the next entry and return the result.
+
+        Cannot move beyond the end of the history
+        '''
+        if self._index + 1 < len(self._entries):
+            self._index += 1
+        return self.getEntry()
+
+    def previousEntry(self):
+        '''
+        Update the field history to the previous entry and return the result.
+
+        Cannot move beyond the start of the history.
+        '''
+        if self._index - 1 >= 0:
+            self._index -= 1
+        return self.getEntry()
+
+
+_searchHistory = FieldHistory()
+_replaceHistory = FieldHistory()
+
+
 class RenameDialog(QtWidgets.QDialog):
     '''
     A super simplistic dialog for renaming the selected nodes in Maya
@@ -326,76 +382,36 @@ class RenameDialog(QtWidgets.QDialog):
         QtWidgets.QShortcut(QtGui.QKeySequence("Up"), self, self.previousEntry)
         QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self, self.nextEntry)
 
-        self.historyIndexes = {'search': len(_history['search']) - 1,
-                               'replace': len(_history['replace']) - 1}
-        self.historyFields = {'search': self.searchField,
-                              'replace': self.replaceField}
-        self._addHistory()
+        self.historyFields = {
+            self.replaceField: _replaceHistory,
+            self.searchField: _searchHistory
+        }
+        self._addTextToHistory()
 
-    def _addHistory(self):
+    def _addTextToHistory(self):
         '''
         Add the current field text to the history if applicable.
         '''
-        global _history
-
-        def addToHistory(entries, index, text):
-            # Add a new entry if we are at the end of the entries list,
-            # and the last entry is not the same.
-            if index == len(entries) - 1:
-                if not (entries and entries[-1] == text):
-                    index = len(entries)
-                    entries.append(text)
-            else:
-                # Otherwise insert a new entry.
-                index += 1
-                entries.insert(index, text)
-            return index
-
-        for field, entries in _history.iteritems():
-            self.historyIndexes[field] = addToHistory(
-                entries,
-                self.historyIndexes[field],
-                self.historyFields[field].text())
+        for field, history in self.historyFields.iteritems():
+            history.addEntry(field.text())
 
     def previousEntry(self):
         '''
         Set the text field with focus to the previous history entry.
         '''
-        global _history
-
-        def getPreviousIndex(currentIndex):
-            if currentIndex - 1 < 0:
-                index = 0
-            else:
-                index = currentIndex - 1
-            return index
-
         focusedWidget = QtWidgets.QApplication.focusWidget()
-        for field, entries in _history.iteritems():
-            if focusedWidget is self.historyFields[field]:
-                i = getPreviousIndex(self.historyIndexes[field])
-                self.historyIndexes[field] = i
-                self.historyFields[field].setText(entries[i])
+        history = self.historyFields.get(focusedWidget)
+        if history is not None:
+            focusedWidget.setText(history.previousEntry())
 
     def nextEntry(self):
         '''
         Set the text field with focus to the next history entry.
         '''
-        global _history
-
-        def getNextIndex(currentIndex, entries):
-            if currentIndex == len(entries) - 1:
-                index = currentIndex
-            else:
-                index = currentIndex + 1
-            return index
-
         focusedWidget = QtWidgets.QApplication.focusWidget()
-        for field, entries in _history.iteritems():
-            if focusedWidget is self.historyFields[field]:
-                i = getNextIndex(self.historyIndexes[field], entries)
-                self.historyIndexes[field] = i
-                self.historyFields[field].setText(entries[i])
+        history = self.historyFields.get(focusedWidget)
+        if history is not None:
+            focusedWidget.setText(history.nextEntry())
 
     def paintEvent(self, event):
         if not self.useRoundedCorners:
@@ -444,7 +460,7 @@ class RenameDialog(QtWidgets.QDialog):
         '''
         Renames the selected objects with the replaceField string
         '''
-        self._addHistory()
+        self._addTextToHistory()
         objs = self.getSelection()
         if not objs:
             # TODO: Pop up a dialog with this

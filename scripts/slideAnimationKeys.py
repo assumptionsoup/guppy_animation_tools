@@ -33,7 +33,6 @@ from guppy_animation_tools import selectedAttributes, getLogger, internal
 
 _log = getLogger(__name__)
 
-
 # From python 3.5 docs, isclose()
 def isFloatClose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
@@ -285,11 +284,11 @@ class Curve(object):
         return curves
 
     @classmethod
-    def detectCurves(cls):
+    def detectCurves(cls, forceSelectedKeys=False):
         curves = []
         # Find selected keyframes if graph editor is open.
         graphEditor = selectedAttributes.GraphEditorInfo.detect(restrictToVisible=True)
-        if graphEditor.isValid():
+        if graphEditor.isValid() or forceSelectedKeys:
             _log.debug("Searching for selected keys")
             # Find curves with selected keys
             for attr in pm.keyframe(query=1, name=1, selected=1) or []:
@@ -639,14 +638,14 @@ class SegmentCollection(object):
             raise KeyError('Key %r is not in this collection', key)
 
     @classmethod
-    def detect(cls):
+    def detect(cls, forceSelectedKeys=False):
         '''
         Detect the currently selected keys/curve segments in Maya.
 
         Returns a SegmentCollection.  SegmentCollection may not have any
         segment associated with it, if the user's selection is empty.
         '''
-        curves = Curve.detectCurves()
+        curves = Curve.detectCurves(forceSelectedKeys=forceSelectedKeys)
         collection = cls()
 
         for curve in curves:

@@ -27,55 +27,47 @@ The primary method associated with this module is the "get" method.'''
 '''
 
 import maya.cmds as cmd
-import maya.OpenMaya as om
 import maya.mel as mel
 import pymel.core as pm
 
 import guppy_animation_tools as gat
 
-# DEBUG methods
-DEBUG = 0
+
 _log = gat.getLogger(__name__)
 
-
-def toggleDebug():
-    global DEBUG
-    DEBUG = not DEBUG
-
-__report_indent = [0]
+# Set to true to debug call traces.
+traceCalls = False
 
 
-def printCalled(fn):
-    """Decorator to print information about a function
-    call for use while debugging.
-    Prints function name, arguments, and call number
-    when the function is called. Prints this information
-    again along with the return value when the function
-    returns.
+def logCalled(func):
+    """
+    Decorator to print information about a function call for use while
+    debugging.
+
+    Prints function name, arguments, and call number when the function
+    is called. Prints this information again along with the return value
+    when the function returns.
     """
 
-    def wrap(*params, **kwargs):
-        if DEBUG:
-            wrap.callcount = wrap.callcount + 1
+    def wrap(*args, **kwargs):
+        # don't do extra work if we're not debugging.
+        if traceCalls:
+            indent = ' ' * logCalled.indent
+            argRepr = [repr(arg) for arg in args]
+            kwargsRepr = ["%s=%s" % (key, repr(value)) for key, value in kwargs.iteritems()]
+            signature = "%s(%s)" % (func.__name__, ', '.join(argRepr + kwargsRepr))
 
-            indent = ' ' * __report_indent[0]
-            fc = "%s(%s)" % (fn.__name__, ', '.join(
-                [a.__repr__() for a in params] +
-                ["%s = %s" % (a, repr(b)) for a, b in kwargs.items()]
-            ))
-
-            print "%s%s called" % (indent, fc)
-            __report_indent[0] += 1
-            ret = fn(*params, **kwargs)
-            __report_indent[0] -= 1
-            print "%s%s returned %s" % (indent, fc, repr(ret))
+            _log.info("%s%s called", indent, signature)
+            logCalled.indent += 1
+            ret = func(*args, **kwargs)
+            logCalled.indent -= 1
+            _log.info("%s%s returned %s", indent, signature, repr(ret))
         else:
-            ret = fn(*params, **kwargs)
+            ret = func(*args, **kwargs)
         return ret
-    wrap.callcount = 0
     return wrap
 
-# The real methods
+logCalled.indent = 0
 
 
 class GraphEditorInfo(object):
@@ -215,7 +207,7 @@ class GraphEditorInfo(object):
         return bool(self.panelName) and cmd.scriptedPanel(self.panelName, query=True, exists=True)
 
 
-@printCalled
+@logCalled
 def get(detectionType='cursor', useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=True):
     '''Get selected attributes using the given detection type.
 
@@ -283,7 +275,7 @@ def homogonizeName(fullPath):
     return obj
 
 
-@printCalled
+@logCalled
 def getAnimatableAttributes(obj):
     '''Returns keyable attributes on an object.  Always returns a list'''
 
@@ -304,7 +296,7 @@ def getAnimatableAttributes(obj):
     return attrs
 
 
-@printCalled
+@logCalled
 def getNonAnimatableAttributes(obj):
     '''Returns non-keyable attributes on an object.  Always returns a list.
 
@@ -338,7 +330,7 @@ def getNonAnimatableAttributes(obj):
     return attrs
 
 
-@printCalled
+@logCalled
 def filterSelectedToAttributes(selected, expandObjects, animatableOnly):
     '''
     The real brains of the operation.  Filters the given objects/attributes
@@ -380,7 +372,7 @@ def filterSelectedToAttributes(selected, expandObjects, animatableOnly):
     return attributes
 
 
-@printCalled
+@logCalled
 def getGraphEditor(graphInfo, expandObjects=True, useSelectedCurves=True, animatableOnly=True, usePartialCurveSelection=True):
     '''
     Get attributes selected in the graph editor.
@@ -427,7 +419,7 @@ def getGraphEditor(graphInfo, expandObjects=True, useSelectedCurves=True, animat
     return attributes
 
 
-@printCalled
+@logCalled
 def getChannelBox(expandObjects=True, animatableOnly=True, selectedOnly=False):
     '''Gets attributes selected in the channelBox.
 
@@ -503,7 +495,7 @@ def getChannelBox(expandObjects=True, animatableOnly=True, selectedOnly=False):
     return attributes
 
 
-@printCalled
+@logCalled
 def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribute=0):
     '''An quick way to get a single object from an incomming or outgoing
     connection.'''
@@ -526,7 +518,7 @@ def getFirstConnection(node, attribute=None, inAttr=1, outAttr=None, findAttribu
         raise AttributeError('%s has no attribute %s' % (node, attribute))
 
 
-@printCalled
+@logCalled
 def getEditorFromPanel(panel, editorCommand):
     '''Finds the editor associated with the given panel.  editorCommand must be
     the editor's function e.g. maya.cmds.nodeEditor'''
@@ -538,7 +530,7 @@ def getEditorFromPanel(panel, editorCommand):
                 return editor
 
 
-@printCalled
+@logCalled
 def selectionConnectionFromPanel(panel):
     '''A more robust way of determining the selection connection of a graph
     editor given its panel Returns None if nothing is found.'''
@@ -550,7 +542,7 @@ def selectionConnectionFromPanel(panel):
     return None
 
 
-@printCalled
+@logCalled
 def getSelectedCurves(usePartialCurveSelection=True):
     '''
     Returns a list of all curves that are completely selected.
@@ -587,7 +579,7 @@ def getSelectedCurves(usePartialCurveSelection=True):
     return selection
 
 
-@printCalled
+@logCalled
 def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, usePartialCurveSelection=True):
     '''Returns true if selected curves took precedence while obtaining
     attributes'''
@@ -606,7 +598,7 @@ def wereSelectedCurvesUsed(detectionType='cursor', useSelectedCurves=True, usePa
     return False
 
 
-@printCalled
+@logCalled
 def isChannelBoxVisible():
     '''
     Returns if the channelBox is visible to the user (the user does not have
@@ -623,7 +615,7 @@ def isChannelBoxVisible():
         return not cmd.channelBox(channelBox, q=1, io=1)
 
 
-@printCalled
+@logCalled
 def removeUnderworldFromPath(attributes):
     '''This is rare, but more than one underworld -> marker in the path will
     break a lot of things in Maya. This removes all -> from path if there is
