@@ -34,10 +34,8 @@ from guppy_animation_tools.internal.qt import QtCore, QtGui, QtWidgets
 
 try:
     _globalQtObjects
-    _history
 except NameError:
     _globalQtObjects = []
-    _history = {'search': [], 'replace': []}
 
 _log = gat.getLogger(__name__)
 
@@ -291,8 +289,8 @@ class FieldHistory(object):
         return self.getEntry()
 
 
-# _searchHistory = FieldHistory()
-# _replaceHistory = FieldHistory()
+_searchHistory = FieldHistory()
+_replaceHistory = FieldHistory()
 
 
 class RenameDialog(QtWidgets.QDialog):
