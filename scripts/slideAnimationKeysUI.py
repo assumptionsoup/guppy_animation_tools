@@ -80,7 +80,7 @@ class CheckBoxFrame(QtWidgets.QFrame):
         self._widgetHolder.layout().setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         self._widgetHolder.setObjectName("_widgetHolder")
         self._widgetHolder.setContentsMargins(4, 10, 4, 4)
-        self._widgetHolder.layout().setMargin(0)
+        self._widgetHolder.layout().setContentsMargins(0, 0, 0, 0)
 
         self.checkbox = QtWidgets.QCheckBox(parent=self)
 
