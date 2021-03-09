@@ -382,7 +382,11 @@ class MoveMyObjectsWidget(internal.ui.PersistentWidget):
 
         self.adjustSize()
         self.resize(300, self.height())
-        self.move(QtWidgets.QApplication.desktop().screen().rect().center()
+        # Have to save desktop and screen to vars for maya 2020.
+        # Some change to Qt cause these to get gc'd if not.
+        desktop = QtWidgets.QApplication.desktop()
+        screen = desktop.screen()
+        self.move(screen.rect().center()
             - self.rect().center())
 
     def _connectSignals(self):
