@@ -38,13 +38,28 @@ def isFloatClose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
+def lerp(a, b, alpha):
+    return (b - a) * alpha + a
+
+def easeInCubic(alpha):
+    return alpha ** 3
+
+def easeOutCubic(alpha):
+    return 1 - (1.0 - alpha) ** 3
+
+def easeInOutCubic(alpha):
+    if alpha < 0.5:
+        return 4.0 * alpha ** 3
+    else:
+        return 1.0 - (-2.0 * alpha + 2.0) ** 3 / 2.0
+
 class PersistentSettings(object):
     '''
     Global persistent settings store.
 
     Uses pm.env.optionVars under the hood which may lead to some quirkieness.
     '''
-    modes = ('blend', 'shift', 'average', 'default', 'shrink', 'level', 'linear')
+    modes = ('blend', 'shift', 'average', 'default', 'shrink', 'level', 'linear', 'ease', 'ease in/out')
     _attrBindings = {
         'mode': 'jh_sak_mode',
         'showSlider': 'jh_sak_showSlider',
@@ -376,6 +391,30 @@ class SegmentKey(Key):
             raise ValueError('Key/Segment is not linked to collection.  '
                              'Cannot find shrink value.')
 
+    @property
+    def easeInValue(self):
+        try:
+            return self.segment.collection.getEaseInValue(self)
+        except AttributeError:
+            raise ValueError('Key/Segment is not linked to collection.  '
+                             'Cannot find ease in value.')
+
+    @property
+    def easeOutValue(self):
+        try:
+            return self.segment.collection.getEaseOutValue(self)
+        except AttributeError:
+            raise ValueError('Key/Segment is not linked to collection.  '
+                             'Cannot find ease out value.')
+
+    @property
+    def easeInOutValue(self):
+        try:
+            return self.segment.collection.getEaseInOutValue(self)
+        except AttributeError:
+            raise ValueError('Key/Segment is not linked to collection.  '
+                             'Cannot find ease in/out value.')
+
     def __hash__(self):
         # Maya can't have spaces or dashes in the name, which helps us
         # guarantee that our index hash won't collide with a weirdly
@@ -394,6 +433,9 @@ class SegmentKey(Key):
             return False
         if not isFloatClose(self.value, other.value):
             _log.debug('Keys value mismatch %s %s', self, other)
+            return False
+        if self.time != other.time:
+            _log.debug('Keys time mismatch %s %s', self, other)
             return False
         return True
 
@@ -430,6 +472,24 @@ class CurveSegment(object):
             self.neighborLeft = firstKey
         else:
             self.neighborLeft = SegmentKey(curve.keys[firstKey.index - 1])
+
+    @property
+    def totalTimeInclusive(self):
+        '''
+        Return total time including immediate neighbors
+        '''
+        try:
+            totalTime = self._cache['totalTime']
+        except KeyError:
+            totalTime = self._cache['totalTime'] = float(self.neighborRight.time - self.neighborLeft.time)
+        return totalTime
+
+    def getTimeAsPercentInclusive(self, key):
+        '''
+        Return 0-1 value representing the key's palcement along curve segment in time.
+        '''
+        currentTime = key.time - self.neighborLeft.time
+        return currentTime / self.totalTimeInclusive
 
     @classmethod
     def fromCurve(cls, curve, collection=None):
@@ -547,11 +607,24 @@ class SegmentCollection(object):
                 except ZeroDivisionError:
                     t = 0.0
                 self._cache['linearValues'][key] = t * valueChange + segment.neighborLeft.value
-
         try:
             self._cache['levelValue'] = valueTotal / keyCount
         except ZeroDivisionError:
             self._cache['levelValue'] = 0.0
+
+    def _findEase(self, easeFunc):
+        easeGoals = {}
+
+        for segment in self.segments:
+            for key in segment.keys:
+                # Should we be normalizing time across all curves?
+                # Or let each curve ease on its own timeline?
+                percentTime = segment.getTimeAsPercentInclusive(key)
+                easeGoals[key] = lerp(
+                    segment.neighborLeft.value,
+                    segment.neighborRight.value,
+                    easeFunc(percentTime))
+        return easeGoals
 
     def _cacheShrink(self):
         try:
@@ -635,6 +708,39 @@ class SegmentCollection(object):
             return self._cache['shrinkValues'][key]
         except KeyError:
             # I like KeyError here.  It seems appropriate.
+            raise KeyError('Key %r is not in this collection', key)
+
+    def getEaseInValue(self, key):
+        try:
+            self._cache['easeIn']
+        except KeyError:
+            self._cache['easeIn'] = self._findEase(easeInCubic)
+
+        try:
+            return self._cache['easeIn'][key]
+        except KeyError:
+            raise KeyError('Key %r is not in this collection', key)
+
+    def getEaseOutValue(self, key):
+        try:
+            self._cache['easeOut']
+        except KeyError:
+            self._cache['easeOut'] = self._findEase(easeOutCubic)
+
+        try:
+            return self._cache['easeOut'][key]
+        except KeyError:
+            raise KeyError('Key %r is not in this collection', key)
+
+    def getEaseInOutValue(self, key):
+        try:
+            self._cache['easeInOut']
+        except KeyError:
+            self._cache['easeInOut'] = self._findEase(easeInOutCubic)
+
+        try:
+            return self._cache['easeInOut'][key]
+        except KeyError:
             raise KeyError('Key %r is not in this collection', key)
 
     @classmethod
@@ -863,10 +969,18 @@ class SlideKeysController(object):
                     goalValue = key.levelValue
                 elif self._mode == 'linear':
                     goalValue = key.linearValue
+                elif self._mode == 'ease':
+                    if percent < 0:
+                        goalValue = key.easeOutValue
+                    else:
+                        goalValue = key.easeInValue
+                elif self._mode == 'ease in/out':
+                    goalValue = key.easeInOutValue
+
 
                 keyValue = getKeyValue(key)
                 # Lerp to goal.
-                if self._mode in ('blend', 'shift'):  # Non-negative lerps
+                if self._mode in ('blend', 'shift', 'ease'):  # Non-negative lerps
                     newValue = keyValue * (1 - abs(percent)) + goalValue * abs(percent)
                 else:
                     newValue = keyValue * (1 - percent) + goalValue * percent
